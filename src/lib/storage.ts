@@ -24,7 +24,15 @@ export interface StorageProvider {
 }
 
 function isNetlify(): boolean {
-  return process.env.NETLIFY === "true" || !!process.env.NETLIFY_SITE_ID;
+  if (process.env.NETLIFY === "true") return true;
+  if (process.env.NETLIFY_SITE_ID) return true;
+  if (process.env.NETLIFY_SITE_URL) return true;
+  if (process.env.NETLIFY_DEPLOY_URL) return true;
+  // Netlify serverless functions run from /var/task
+  if (process.cwd().startsWith("/var/task")) return true;
+  // In production on Netlify, NODE_ENV is "production" and we're not in a local dev env
+  if (process.env.NODE_ENV === "production" && !process.cwd().includes("C:\\") && !process.cwd().includes("/Users/")) return true;
+  return false;
 }
 
 /**
@@ -169,7 +177,10 @@ let _provider: StorageProvider | null = null;
 
 export function getStorageProvider(): StorageProvider {
   if (!_provider) {
-    _provider = isNetlify() ? new NetlifyBlobProvider() : new LocalStorageProvider();
+    const netlify = isNetlify();
+    console.log("[storage] isNetlify:", netlify, "NODE_ENV:", process.env.NODE_ENV, "cwd:", process.cwd());
+    _provider = netlify ? new NetlifyBlobProvider() : new LocalStorageProvider();
+    console.log("[storage] Provider selected:", _provider.constructor.name);
   }
   return _provider;
 }

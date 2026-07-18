@@ -426,20 +426,34 @@ export const createNeed = createPost;
 function localUploadPath(url: string): string | null {
   if (!url.startsWith("/uploads/")) return null;
   const decoded = decodeURIComponent(url);
-  // Zorg dat we nooit buiten public/uploads verwijderen
   if (decoded.includes("..") || decoded.includes("\\")) return null;
   return join(process.cwd(), "public", decoded);
 }
 
 async function deleteUploadFiles(urls: (string | null | undefined)[]) {
+  const { getStorageProvider } = await import("./storage");
+  const provider = getStorageProvider();
   for (const url of urls) {
     if (!url) continue;
-    const path = localUploadPath(url);
-    if (!path) continue;
-    try {
-      await unlink(path);
-    } catch {
-      // bestand was er misschien al niet meer
+    // New-style storage URLs: delete via provider
+    if (url.startsWith("/api/storage/")) {
+      const key = url.replace("/api/storage/", "");
+      try {
+        await provider.delete(key);
+      } catch {
+        // best-effort
+      }
+      continue;
+    }
+    // Legacy local uploads: only delete in development
+    if (process.env.NODE_ENV !== "production") {
+      const path = localUploadPath(url);
+      if (!path) continue;
+      try {
+        await unlink(path);
+      } catch {
+        // bestand was er misschien al niet meer
+      }
     }
   }
 }
