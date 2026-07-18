@@ -1,0 +1,32 @@
+export const INDUSTRIES = [
+  "Bouw",
+  "Horeca & food",
+  "Productie",
+  "Retail",
+  "Technologie",
+  "Transport & logistiek",
+  "Verpakkingen",
+  "Zorg",
+  "Import & export",
+  "Financieel",
+  "Agrarisch",
+  "Vastgoed",
+  "Zakelijke dienstverlening",
+  "Groothandel",
+  "Energie & duurzaamheid",
+];
+
+export const PROVINCES = [
+  "Groningen",
+  "Friesland",
+  "Drenthe",
+  "Overijssel",
+  "Flevoland",
+  "Gelderland",
+  "Utrecht",
+  "Noord-Holland",
+  "Zuid-Holland",
+  "Zeeland",
+  "Noord-Brabant",
+  "Limburg",
+];
