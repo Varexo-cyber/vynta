@@ -125,16 +125,28 @@ class NetlifyBlobProvider implements StorageProvider {
   }
 
   async read(key: string): Promise<{ data: Buffer; mimeType: string } | null> {
-    const store = await this.getStore();
-    const data = await store.get(key, { type: "bytes" });
-    if (!data) {
-      console.log("[storage] Blob not found:", key);
-      return null;
+    try {
+      const store = await this.getStore();
+      console.log("[storage] Reading blob:", key);
+      const data = await store.get(key, { type: "bytes" });
+      if (!data || (data instanceof Uint8Array && data.length === 0)) {
+        console.log("[storage] Blob not found or empty:", key);
+        return null;
+      }
+      let mimeType = "application/octet-stream";
+      try {
+        const metadata = await store.getMetadata(key);
+        if (metadata?.mimeType) mimeType = metadata.mimeType;
+      } catch (metaErr) {
+        console.warn("[storage] Could not read metadata for:", key, metaErr);
+      }
+      const buf = Buffer.from(data);
+      console.log("[storage] Blob read:", key, "size:", buf.length, "mime:", mimeType);
+      return { data: buf, mimeType };
+    } catch (err) {
+      console.error("[storage] Error reading blob:", key, err);
+      throw err;
     }
-    const metadata = await store.getMetadata(key);
-    const mimeType = metadata?.mimeType ?? "application/octet-stream";
-    console.log("[storage] Blob read:", key, "size:", data.length, "mime:", mimeType);
-    return { data: Buffer.from(data), mimeType };
   }
 
   async delete(key: string): Promise<void> {
