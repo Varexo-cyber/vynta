@@ -4,6 +4,8 @@
 
 [functions]
   included_files = ["public/uploads/.gitkeep"]
+  body_size_limit = "50mb"
+  node_bundler = "esbuild"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

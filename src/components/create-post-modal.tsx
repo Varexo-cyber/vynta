@@ -250,8 +250,24 @@ export function CreatePostModal() {
       form.append("file", file);
       setUploadQueue((q) => q + 1);
       try {
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        const data = await res.json();
+        const res = await fetch("/api/upload", { method: "POST", body: form, credentials: "same-origin" });
+        const text = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          console.error("[upload] Non-JSON response, status:", res.status, "body:", text.slice(0, 200));
+          if (res.status === 404) {
+            toast("Upload mislukt", "De uploadfunctie is niet bereikbaar (404).");
+          } else if (res.status === 413) {
+            toast("Upload mislukt", "Het bestand is te groot voor de server.");
+          } else if (res.status >= 500) {
+            toast("Upload mislukt", "De server kon het bestand niet verwerken. Probeer een kleiner bestand.");
+          } else {
+            toast("Upload mislukt", `Onverwachte reactie van server (${res.status}).`);
+          }
+          return;
+        }
         if (res.ok && data.ok) {
           setAttachments((prev) => [
             ...prev,
@@ -267,10 +283,20 @@ export function CreatePostModal() {
             },
           ]);
         } else {
-          toast("Upload mislukt", data.error || "Probeer een ander bestand.");
+          const errMsg = data.error || "Probeer een ander bestand.";
+          if (res.status === 401) {
+            toast("Sessie verlopen", "Je sessie is verlopen. Log opnieuw in.");
+          } else if (res.status === 413) {
+            toast("Bestand te groot", errMsg);
+          } else if (res.status === 415) {
+            toast("Niet toegestaan", errMsg);
+          } else {
+            toast("Upload mislukt", errMsg);
+          }
         }
-      } catch {
-        toast("Upload mislukt", "Controleer je verbinding en probeer opnieuw.");
+      } catch (err) {
+        console.error("[upload] Network error:", err);
+        toast("Upload mislukt", "De uploadfunctie is niet bereikbaar. Controleer je verbinding.");
       } finally {
         setUploadQueue((q) => Math.max(0, q - 1));
       }

@@ -79,10 +79,16 @@ export function CompanyProfileHeader({
     formData.append("file", pendingUpload.file);
 
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
+      const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "same-origin" });
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch {
+        toast("Upload mislukt", `Server reactie ongeldig (${res.status}).`);
+        setSaving(false);
+        return;
+      }
       if (!data.ok) {
-        toast("Upload mislukt", data.error);
+        toast("Upload mislukt", data.error || "Onbekende fout.");
         setSaving(false);
         return;
       }

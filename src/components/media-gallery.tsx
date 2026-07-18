@@ -14,6 +14,9 @@ function resolveAttachmentUrl(url: string): string {
   if (url.startsWith("/uploads/")) {
     return url.replace("/uploads/", "/api/uploads/");
   }
+  if (url.startsWith("/api/storage/")) {
+    return url;
+  }
   return url;
 }
 
