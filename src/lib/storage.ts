@@ -84,8 +84,10 @@ class NetlifyBlobProvider implements StorageProvider {
 
   private async getStore() {
     if (this.store) return this.store;
+    console.log("[storage] Initializing Netlify Blobs store 'vynta-uploads'");
     const { getStore } = await import("@netlify/blobs");
     this.store = await getStore("vynta-uploads");
+    console.log("[storage] Blobs store initialized");
     return this.store;
   }
 
@@ -95,6 +97,7 @@ class NetlifyBlobProvider implements StorageProvider {
   ): Promise<UploadResult> {
     const store = await this.getStore();
     const fullKey = `companies/${opts.companyId}/${opts.category}/${opts.key}`;
+    console.log("[storage] Writing blob, key:", fullKey, "size:", data.length);
     await store.set(fullKey, data, {
       metadata: {
         mimeType: opts.mimeType,
@@ -103,6 +106,7 @@ class NetlifyBlobProvider implements StorageProvider {
         uploadedAt: new Date().toISOString(),
       },
     });
+    console.log("[storage] Blob written successfully");
     const url = `/api/storage/${fullKey}`;
     return {
       key: fullKey,
@@ -115,9 +119,13 @@ class NetlifyBlobProvider implements StorageProvider {
   async read(key: string): Promise<{ data: Buffer; mimeType: string } | null> {
     const store = await this.getStore();
     const data = await store.get(key, { type: "bytes" });
-    if (!data) return null;
+    if (!data) {
+      console.log("[storage] Blob not found:", key);
+      return null;
+    }
     const metadata = await store.getMetadata(key);
     const mimeType = metadata?.mimeType ?? "application/octet-stream";
+    console.log("[storage] Blob read:", key, "size:", data.length, "mime:", mimeType);
     return { data: Buffer.from(data), mimeType };
   }
 

@@ -1,7 +1,4 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
-import sharp from "sharp";
-import { getSession } from "@/lib/auth";
 import { getStorageProvider, generateStorageKey } from "@/lib/storage";
 
 const LIMITS = {
@@ -72,9 +69,25 @@ function extension(file: File, category: "image" | "video" | "audio" | "document
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  console.log("[upload] POST received, content-type:", request.headers.get("content-type"));
+
+  let session;
+  try {
+    const { getSession } = await import("@/lib/auth");
+    session = await getSession();
+  } catch (authErr) {
+    console.error("[upload] Auth error:", authErr);
+    return NextResponse.json(
+      { error: "Authenticatie mislukt.", code: "UPLOAD_AUTH_ERROR" },
+      { status: 500 }
+    );
+  }
+
   if (!session) {
-    return NextResponse.json({ error: "Niet ingelogd." }, { status: 401 });
+    return NextResponse.json(
+      { error: "Je sessie is verlopen. Log opnieuw in.", code: "UPLOAD_UNAUTHORIZED" },
+      { status: 401 }
+    );
   }
 
   try {
@@ -82,21 +95,26 @@ export async function POST(request: Request) {
     const file = form.get("file");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Geen bestand ontvangen." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Geen bestand ontvangen.", code: "UPLOAD_FILE_MISSING" },
+        { status: 400 }
+      );
     }
+
+    console.log("[upload] File received:", file.name, "size:", file.size, "type:", file.type);
 
     const category = detectCategory(file.type);
     if (!category || isDangerous(file, category)) {
       return NextResponse.json(
-        { error: "Dit bestandstype is niet toegestaan." },
-        { status: 400 }
+        { error: "Dit bestandstype is niet toegestaan.", code: "UPLOAD_INVALID_TYPE" },
+        { status: 415 }
       );
     }
 
     if (file.size > LIMITS[category]) {
       const mb = Math.round(LIMITS[category] / 1024 / 1024);
       return NextResponse.json(
-        { error: `Bestand te groot. Maximaal ${mb} MB voor ${category}.` },
+        { error: `Bestand te groot. Maximaal ${mb} MB voor ${category}.`, code: "UPLOAD_TOO_LARGE" },
         { status: 413 }
       );
     }
@@ -107,6 +125,8 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    console.log("[upload] Starting storage upload, key:", storageKey, "company:", companyId);
+
     const provider = getStorageProvider();
     const result = await provider.upload(buffer, {
       key: storageKey,
@@ -115,15 +135,18 @@ export async function POST(request: Request) {
       category,
     });
 
+    console.log("[upload] Storage upload succeeded, url:", result.url);
+
     let width: number | undefined;
     let height: number | undefined;
     if (category === "image") {
       try {
+        const sharp = (await import("sharp")).default;
         const meta = await sharp(buffer).metadata();
         width = meta.width ?? undefined;
         height = meta.height ?? undefined;
-      } catch {
-        // leave dimensions undefined
+      } catch (sharpErr) {
+        console.warn("[upload] sharp unavailable, skipping dimensions:", sharpErr);
       }
     }
 
@@ -139,9 +162,10 @@ export async function POST(request: Request) {
       height,
     });
   } catch (err) {
-    console.error("Upload failed:", err);
+    console.error("[upload] Upload failed:", err);
+    const message = err instanceof Error ? err.message : "Onbekende fout";
     return NextResponse.json(
-      { error: "Upload mislukt, probeer het opnieuw." },
+      { error: `Upload mislukt: ${message}`, code: "UPLOAD_STORAGE_ERROR" },
       { status: 500 }
     );
   }

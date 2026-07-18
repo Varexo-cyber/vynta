@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStorageProvider } from "@/lib/storage";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ key: string[] }> }
 ) {
   const { key: segments } = await params;
@@ -13,11 +13,13 @@ export async function GET(
   }
 
   const key = segments.join("/");
+  console.log("[storage-read] Request for key:", key);
 
   const provider = getStorageProvider();
   const result = await provider.read(key);
 
   if (!result) {
+    console.log("[storage-read] Not found:", key);
     return new NextResponse(null, { status: 404 });
   }
 
