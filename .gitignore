@@ -70,3 +70,15 @@ logs/
 
 # Local Netlify folder
 .netlify
+
+# Android signing secrets
+*.keystore
+*.jks
+keystore.properties
+android/keystore.properties
+android/app/*.keystore
+android/app/*.jks
+
+# iOS signing
+ios/App/*.xcuserstate
+ios/App/xcuserdata/

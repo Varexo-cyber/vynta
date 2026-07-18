@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,6 +27,7 @@ import { SidebarBrandBackup } from "./sidebar-brand-backup";
 import { ThemedLogo } from "./themed-logo";
 import { VyntaAssistant } from "./help/vynta-assistant";
 import { ProductTour } from "./help/product-tour";
+import { useNativeFeatures, setStatusBarDark } from "@/lib/capacitor";
 
 const NAV = [
   { href: "/feed", label: "Feed", icon: Home, tourId: "feed" },
@@ -46,8 +48,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { resolved, toggle } = useTheme();
   const { me, setCreateOpen, setCreateType, createType, unreadMessages, unreadNotifications, unreadOpportunities, toasts, dismissToast } = useApp();
+  const { isNative } = useNativeFeatures();
   const isActive = (href: string) =>
     href === "/feed" ? pathname === "/feed" || pathname === "/" : pathname.startsWith(href);
+
+  useEffect(() => {
+    setStatusBarDark(resolved === "dark");
+  }, [resolved]);
 
   return (
     <div className="relative min-h-screen w-full bg-background">

@@ -16,6 +16,16 @@
     "generate:assets": "tsx scripts/make-assets.ts && npx capacitor-assets generate --android --ios --iconBackgroundColor #111111 --splashBackgroundColor #f6f6f4"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/camera": "^8.2.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@netlify/blobs": "^10.7.9",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
@@ -31,11 +41,11 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@capacitor/android": "^8.4.1",
+    "@capacitor/android": "^8.4.2",
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
-    "@capacitor/ios": "^8.4.1",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/ios": "^8.4.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
