@@ -47,5 +47,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Vynta gebruikt de camera om foto's en video's te maken voor je bedrijfsprofiel en berichten.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Vynta gebruikt de microfoon voor spraakmemo's en audio-/videogesprekken.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Vynta gebruikt je fotobibliotheek om afbeeldingen en video's te kiezen voor je berichten en profiel.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Vynta kan afbeeldingen opslaan in je fotobibliotheek.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Vynta kan documenten openen om deze te delen in berichten en posts.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
