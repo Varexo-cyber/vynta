@@ -17,6 +17,10 @@ function resolveAttachmentUrl(url: string): string {
   return url;
 }
 
+function isLegacyUpload(url: string): boolean {
+  return url.startsWith("/uploads/") && !url.startsWith("/api/");
+}
+
 /* ------------------------------------------------------------------ */
 /* Single attachment — exact the original working carousel             */
 /* ------------------------------------------------------------------ */
@@ -191,7 +195,20 @@ function PreviewTile({ item }: { item: PostAttachment }) {
       loading="lazy"
       className="h-full w-full object-cover"
       onError={(e) => {
-        (e.target as HTMLImageElement).style.opacity = "0.3";
+        const img = e.target as HTMLImageElement;
+        if (isLegacyUpload(item.url)) {
+          img.style.display = "none";
+          const parent = img.parentElement;
+          if (parent && !parent.querySelector("[data-media-fallback]")) {
+            const fallback = document.createElement("div");
+            fallback.setAttribute("data-media-fallback", "");
+            fallback.className = "flex h-full w-full flex-col items-center justify-center gap-1 bg-surface-3 text-muted";
+            fallback.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15c1-1 2-1.5 3-1.5s2 .5 3 1.5"/></svg><span class="text-[10px] font-medium">Media niet beschikbaar</span>';
+            parent.appendChild(fallback);
+          }
+        } else {
+          img.style.opacity = "0.3";
+        }
       }}
     />
   );

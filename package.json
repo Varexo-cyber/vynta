@@ -16,6 +16,7 @@
     "generate:assets": "tsx scripts/make-assets.ts && npx capacitor-assets generate --android --ios --iconBackgroundColor #111111 --splashBackgroundColor #f6f6f4"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.9",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

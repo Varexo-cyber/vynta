@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { getSession } from "@/lib/auth";
+import { getStorageProvider, generateStorageKey } from "@/lib/storage";
 
 const LIMITS = {
   image: 100 * 1024 * 1024, // 100 MB
@@ -103,18 +102,24 @@ export async function POST(request: Request) {
     }
 
     const ext = extension(file, category);
-    const name = `${randomUUID()}.${ext}`;
-    const dir = join(process.cwd(), "public", "uploads");
-    await mkdir(dir, { recursive: true });
-    const path = join(dir, name);
+    const companyId = session.company.id;
+    const storageKey = generateStorageKey(companyId, category, ext);
     const bytes = await file.arrayBuffer();
-    await writeFile(path, Buffer.from(bytes));
+    const buffer = Buffer.from(bytes);
+
+    const provider = getStorageProvider();
+    const result = await provider.upload(buffer, {
+      key: storageKey,
+      mimeType: file.type,
+      companyId,
+      category,
+    });
 
     let width: number | undefined;
     let height: number | undefined;
     if (category === "image") {
       try {
-        const meta = await sharp(path).metadata();
+        const meta = await sharp(buffer).metadata();
         width = meta.width ?? undefined;
         height = meta.height ?? undefined;
       } catch {
@@ -124,7 +129,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      url: `/uploads/${name}`,
+      url: result.url,
+      key: result.key,
       type: category,
       name: file.name,
       size: file.size,

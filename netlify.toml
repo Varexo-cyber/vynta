@@ -2,5 +2,8 @@
   command = "next build"
   publish = ".next"
 
+[functions]
+  included_files = ["public/uploads/.gitkeep"]
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
