@@ -35,6 +35,13 @@ const NAV = [
   { href: "/messages", label: "Berichten", icon: MessageSquare, tourId: "messages" },
 ];
 
+const MOBILE_NAV = [
+  { href: "/feed", label: "Feed", icon: Home },
+  { href: "/opportunities", label: "Kansen", icon: Target },
+  { href: "/networks", label: "Netwerken", icon: Users },
+  { href: "/messages", label: "Berichten", icon: MessageSquare },
+];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { resolved, toggle } = useTheme();
@@ -149,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-surface px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {NAV.slice(0, 2).map((item) => (
+        {MOBILE_NAV.slice(0, 2).map((item) => (
           <BottomItem key={item.href} item={item} active={isActive(item.href)} badge={item.href === "/messages" ? unreadMessages : item.href === "/opportunities" ? unreadOpportunities : 0} />
         ))}
         <button
@@ -160,9 +167,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <Plus size={22} strokeWidth={2.5} />
         </button>
-        {NAV.slice(2).map((item) => (
+        {MOBILE_NAV.slice(2).map((item) => (
           <BottomItem key={item.href} item={item} active={isActive(item.href)} badge={item.href === "/messages" ? unreadMessages : item.href === "/opportunities" ? unreadOpportunities : 0} />
         ))}
+        <Link
+          href={`/company/${me.id}`}
+          className={cn(
+            "relative flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors",
+            pathname === `/company/${me.id}` ? "text-foreground" : "text-muted"
+          )}
+          aria-label="Profiel"
+        >
+          <span className="relative grid h-7 w-7 place-items-center">
+            <CompanyAvatar name={me.name} color={me.logoColor} logoUrl={me.logoUrl} website={me.website} size={26} />
+          </span>
+        </Link>
       </nav>
 
       <CreatePostModal key={createType ?? "default"} />
@@ -224,7 +243,7 @@ function NavRow({ item, active, badge }: { item: typeof NAV[0]; active: boolean;
   );
 }
 
-function BottomItem({ item, active, badge }: { item: typeof NAV[0]; active: boolean; badge: number }) {
+function BottomItem({ item, active, badge }: { item: { href: string; label: string; icon: typeof Home }; active: boolean; badge: number }) {
   return (
     <Link
       href={item.href}
