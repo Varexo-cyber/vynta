@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/app-shell";
-import { ThemedLogo } from "@/components/themed-logo";
 import { Button } from "@/components/ui/primitives";
 import { signIn } from "@/lib/actions";
 
@@ -34,10 +33,15 @@ export default function AuthPage() {
     <div className="dark grid min-h-screen bg-background text-foreground lg:grid-cols-2">
       {/* Brand panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-foreground p-10 text-background lg:flex">
-        <Link href="/" className="group relative flex items-center">
-          <span className="absolute inset-0 -z-10 scale-110 rounded-[30%] bg-brand/30 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
-          <ThemedLogo height={72} fallbackSrc="/logo.png" className="h-[72px] w-[72px] object-cover" />
-          <span className="-ml-3 text-3xl font-bold leading-none text-background transition-transform duration-300 group-hover:-translate-y-0.5">ynta</span>
+        <Link href="/" className="group relative inline-flex items-center transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.02]">
+          <img
+            src="/logo.png"
+            alt="Vynta"
+            className="h-[40px] w-[40px] object-contain"
+          />
+          <span className="ml-2 text-[26px] font-bold leading-none text-black">
+            ynta
+          </span>
         </Link>
         <div className="relative">
           <h1 className="max-w-md text-4xl font-semibold leading-tight tracking-tight">
