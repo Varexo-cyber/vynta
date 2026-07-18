@@ -1,0 +1,18 @@
+{
+  "name": "Vynta",
+  "short_name": "Vynta",
+  "description": "Het digitale bedrijfsnetwerk van Nederland",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f4",
+  "theme_color": "#f6f6f4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

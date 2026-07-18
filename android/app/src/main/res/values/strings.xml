@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vynta</string>
+    <string name="title_activity_main">Vynta</string>
+    <string name="package_name">nl.vynta.app</string>
+    <string name="custom_url_scheme">nl.vynta.app</string>
+</resources>
