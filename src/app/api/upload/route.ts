@@ -141,12 +141,12 @@ export async function POST(request: Request) {
     let height: number | undefined;
     if (category === "image") {
       try {
-        const sharp = (await import("sharp")).default;
-        const meta = await sharp(buffer).metadata();
-        width = meta.width ?? undefined;
-        height = meta.height ?? undefined;
-      } catch (sharpErr) {
-        console.warn("[upload] sharp unavailable, skipping dimensions:", sharpErr);
+        const { imageSize } = await import("image-size");
+        const dims = imageSize(buffer);
+        width = dims.width ?? undefined;
+        height = dims.height ?? undefined;
+      } catch (dimErr) {
+        console.warn("[upload] image-size unavailable, skipping dimensions:", dimErr);
       }
     }
 
