@@ -128,19 +128,21 @@ class NetlifyBlobProvider implements StorageProvider {
     try {
       const store = await this.getStore();
       console.log("[storage] Reading blob:", key);
-      const data = await store.get(key, { type: "bytes" });
-      if (!data || (data instanceof Uint8Array && data.length === 0)) {
+      const arrayBuffer = await store.get(key, { type: "arrayBuffer" });
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         console.log("[storage] Blob not found or empty:", key);
         return null;
       }
       let mimeType = "application/octet-stream";
       try {
-        const metadata = await store.getMetadata(key);
-        if (metadata?.mimeType) mimeType = metadata.mimeType;
+        const metaResult = await store.getMetadata(key);
+        if (metaResult?.metadata?.mimeType) {
+          mimeType = metaResult.metadata.mimeType as string;
+        }
       } catch (metaErr) {
         console.warn("[storage] Could not read metadata for:", key, metaErr);
       }
-      const buf = Buffer.from(data);
+      const buf = Buffer.from(arrayBuffer);
       console.log("[storage] Blob read:", key, "size:", buf.length, "mime:", mimeType);
       return { data: buf, mimeType };
     } catch (err) {
