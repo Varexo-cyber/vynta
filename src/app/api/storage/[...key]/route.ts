@@ -57,7 +57,7 @@ export async function GET(
         "Content-Length": String(chunkSize),
         "Content-Range": `bytes ${start}-${end}/${totalLength}`,
         "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "no-store",
       });
 
       return new NextResponse(new Uint8Array(chunk), { status: 206, headers });
@@ -68,7 +68,7 @@ export async function GET(
     "Content-Type": mimeType,
     "Content-Length": String(totalLength),
     "Accept-Ranges": "bytes",
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Cache-Control": "no-store",
   });
 
   return new NextResponse(new Uint8Array(data), { status: 200, headers });
