@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  ArrowRight, BadgeCheck, Bell, Bookmark, Building2, Check, ChevronRight, Heart, Home,
-  MapPin, MessageCircle, MessageSquare, MoreHorizontal, Network, Search, ShieldCheck,
-  Sparkles, Target, Users, Zap,
+  Activity, ArrowRight, BadgeCheck, Bell, Bookmark, Building2, Check, ChevronRight,
+  Globe2, Heart, Home, Layers3, MapPin, MessageCircle, MessageSquare, MoreHorizontal,
+  Network, Search, Send, ShieldCheck, Sparkles, Target, TrendingUp, Users, Zap,
 } from "lucide-react";
 import { MarketingShell, Reveal } from "@/components/marketing/marketing-shell";
 import { VyntaMark } from "@/components/vynta-brand";
@@ -18,9 +18,22 @@ const NETWORK_FEATURES = [
 ];
 
 const TRUST_POINTS = [
-  "Bedrijfsprofielen als uitgangspunt",
-  "Gerichte zakelijke vragen en aanbiedingen",
-  "Direct contact zonder openbare privégegevens",
+  "Gratis bedrijfsprofiel",
+  "Zakelijke social media zonder ruis",
+  "Direct contact vanuit ieder relevant bericht",
+];
+
+const PLATFORM_MOMENTS = [
+  { icon: Search, label: "Ontdekken", title: "Zie wat bedrijven nu nodig hebben", body: "Vind actuele vragen, aanbod en updates op regio, sector en relevantie." },
+  { icon: Building2, label: "Profileren", title: "Laat je bedrijf herkenbaar spreken", body: "Publiceer vanuit één professioneel profiel in plaats van een los persoonlijk account." },
+  { icon: MessageSquare, label: "Reageren", title: "Ga van bericht naar gesprek", body: "Reageer inhoudelijk en verplaats het contact daarna veilig naar privéberichten." },
+  { icon: Network, label: "Groeien", title: "Bouw relaties die blijven bestaan", body: "Volg bedrijven, bewaar kansen en houd je zakelijke netwerk bij elkaar." },
+];
+
+const PLATFORM_PROMISES = [
+  { value: "€0", label: "om te starten", detail: "Geen abonnement nodig voor je bedrijfsprofiel." },
+  { value: "B2B", label: "van begin tot eind", detail: "Bedrijven, zakelijke context en relevante gesprekken." },
+  { value: "NL", label: "landelijk netwerk", detail: "Lokaal ontdekken en door heel Nederland verbinden." },
 ];
 
 const LIVE_EVENTS = [
@@ -70,20 +83,20 @@ export function Landing() {
           <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }} className="min-w-0 max-w-[540px]">
             <div className="mb-6 flex items-center gap-3 text-[12px] font-bold uppercase tracking-[0.16em] text-[#68707b]">
               <motion.span className="h-px bg-[#f15a37]" initial={{ width: 0 }} animate={{ width: 28 }} transition={{ delay: 0.2, duration: 0.5 }} />
-              Zakelijk netwerk voor Nederland
+              Gratis socialmediaplatform voor Nederlandse bedrijven
             </div>
             <h1 className="text-[43px] font-bold leading-[1.06] tracking-[-0.052em] text-[#121417] sm:text-[56px] lg:text-[62px]">Vind de juiste bedrijven. Bouw aan echte relaties.</h1>
-            <p className="mt-6 max-w-[500px] text-[18px] leading-8 text-[#5d626a]">Vynta is het professionele netwerk waar Nederlandse bedrijven kennis delen, zakelijke kansen vinden en rechtstreeks met elkaar in contact komen.</p>
+            <p className="mt-6 max-w-[510px] text-[18px] leading-8 text-[#5d626a]">Vynta is het gratis zakelijke socialmediaplatform waar Nederlandse bedrijven zich presenteren, kennis delen, kansen vinden en rechtstreeks met elkaar in contact komen.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <motion.div whileHover={{ y: -3, scale: 1.015 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 400, damping: 24 }}>
-                <Link href="/onboarding" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#f15a37] px-5 text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(241,90,55,0.22)] transition-colors hover:bg-[#df4d2b]">Maak een bedrijfsprofiel <ArrowRight size={17} strokeWidth={2.3} /></Link>
+                <Link href="/onboarding" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#f15a37] px-5 text-[15px] font-bold text-white shadow-[0_10px_28px_rgba(241,90,55,0.22)] transition-colors hover:bg-[#df4d2b]">Gratis bedrijfsprofiel <ArrowRight size={17} strokeWidth={2.3} /></Link>
               </motion.div>
               <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 400, damping: 24 }}>
                 <Link href="/platform" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#d9dce1] bg-white px-5 text-[15px] font-semibold text-[#30343a] transition-colors hover:border-[#b9bec5] hover:bg-[#f7f8f9]">Bekijk het platform <ChevronRight size={17} /></Link>
               </motion.div>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-[#68707b]">
-              <span className="inline-flex items-center gap-2"><Check size={15} className="text-[#16835b]" /> Gratis aanmelden</span>
+              <span className="inline-flex items-center gap-2"><Check size={15} className="text-[#16835b]" /> Gratis starten, geen abonnement</span>
               <span className="inline-flex items-center gap-2"><Check size={15} className="text-[#16835b]" /> Voor Nederlandse bedrijven</span>
             </div>
           </motion.div>
@@ -104,6 +117,38 @@ export function Landing() {
         </div>
       </section>
 
+      <section className="relative overflow-hidden bg-[#17191c] px-5 py-20 text-white sm:px-7 sm:py-24">
+        <div className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full bg-[#f15a37]/20 blur-[130px]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="relative mx-auto max-w-[1180px]">
+          <Reveal className="grid gap-8 border-b border-white/10 pb-11 lg:grid-cols-[1fr_0.8fr] lg:items-end">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#ff8b6f]">Eén platform. Een compleet zakelijk netwerk.</p>
+              <h2 className="mt-4 max-w-3xl text-[36px] font-bold leading-[1.08] tracking-[-0.045em] sm:text-[52px]">Professioneel zichtbaar zijn, zonder eerst advertentiebudget vrij te maken.</h2>
+            </div>
+            <p className="text-[16px] leading-7 text-[#aeb4bd] lg:pb-1">Vynta is gratis om te starten. Je bedrijf krijgt een vaste plek, je team kan relevante signalen volgen en ieder goed contact begint met duidelijke zakelijke context.</p>
+          </Reveal>
+
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 mt-10 md:grid-cols-3">
+            {PLATFORM_PROMISES.map((promise, index) => (
+              <Reveal key={promise.value} delay={index * 0.07} className="group relative bg-[#1d2024] p-7 transition-colors hover:bg-[#22262b] sm:p-8">
+                <span className="absolute right-6 top-6 h-2 w-2 rounded-full bg-[#f15a37] shadow-[0_0_18px_rgba(241,90,55,.8)]" />
+                <p className="text-[42px] font-bold tracking-[-0.06em] text-white">{promise.value}</p>
+                <p className="mt-1 text-[13px] font-bold uppercase tracking-[0.12em] text-[#ff8b6f]">{promise.label}</p>
+                <p className="mt-5 max-w-xs text-[14px] leading-6 text-[#9fa6b0]">{promise.detail}</p>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4 rounded-xl border border-white/10 bg-white/[0.035] px-5 py-4 text-[12px] font-semibold text-[#c8cdd4]">
+            <span className="inline-flex items-center gap-2 text-[#ff8b6f]"><Activity size={16} /> Live op Vynta</span>
+            {["Nieuwe vraag uit Rotterdam", "Samenwerking gezocht in Utrecht", "Producent gevonden in Brabant"].map((signal, index) => (
+              <motion.span key={signal} className="inline-flex items-center gap-2" animate={reduceMotion ? undefined : { opacity: [0.45, 1, 0.45] }} transition={{ duration: 2.6, repeat: Infinity, delay: index * 0.55 }}><span className="h-1.5 w-1.5 rounded-full bg-[#38b889]" />{signal}</motion.span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="bg-white px-5 py-20 sm:px-7 sm:py-28">
         <div className="mx-auto max-w-[1180px]">
           <Reveal className="grid gap-8 border-b border-[#e5e7eb] pb-12 md:grid-cols-[0.8fr_1.2fr] md:items-end">
@@ -121,11 +166,51 @@ export function Landing() {
         </div>
       </section>
 
+      <section className="relative overflow-hidden border-y border-[#e1e4e8] bg-[#f4f5f6] px-5 py-20 sm:px-7 sm:py-28">
+        <div className="pointer-events-none absolute left-1/2 top-10 h-80 w-80 rounded-full bg-[#ffddd4]/55 blur-[120px]" />
+        <div className="relative mx-auto max-w-[1180px]">
+          <Reveal className="mx-auto max-w-3xl text-center">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#e25231]">Van zichtbaarheid naar samenwerking</p>
+            <h2 className="mt-4 text-[36px] font-bold leading-[1.08] tracking-[-0.045em] sm:text-[52px]">Alles wat een zakelijk socialmediaplatform nuttig moet maken.</h2>
+            <p className="mx-auto mt-5 max-w-2xl text-[16px] leading-7 text-[#676e78]">Niet meer bereik om het bereik. Wel een duidelijke route van bedrijfsprofiel naar relevante ontdekking, inhoudelijke reactie en duurzaam contact.</p>
+          </Reveal>
+
+          <div className="mt-12 grid gap-4 md:grid-cols-2">
+            {PLATFORM_MOMENTS.map((moment, index) => (
+              <Reveal key={moment.title} delay={index * 0.06} className="group relative overflow-hidden rounded-2xl border border-[#dfe3e7] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#f0a18e] hover:shadow-[0_24px_65px_rgba(24,28,33,.1)] sm:p-9">
+                <div className="absolute right-0 top-0 h-28 w-28 translate-x-8 -translate-y-8 rounded-full bg-[#fff0eb] transition-transform duration-500 group-hover:scale-125" />
+                <div className="relative flex items-start justify-between gap-5">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#17191c] text-white shadow-[0_10px_24px_rgba(23,25,28,.13)]"><moment.icon size={21} /></span>
+                  <span className="text-[12px] font-bold text-[#afb4bc]">0{index + 1}</span>
+                </div>
+                <div className="relative mt-8">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#e25231]">{moment.label}</p>
+                  <h3 className="mt-3 text-[22px] font-bold tracking-[-0.035em]">{moment.title}</h3>
+                  <p className="mt-3 max-w-lg text-[15px] leading-7 text-[#6a717b]">{moment.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-[#dfe3e7] bg-[#dfe3e7] sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              [Globe2, "Heel Nederland", "Regio en sector geven richting."],
+              [Layers3, "Eén context", "Profiel, bericht en gesprek bij elkaar."],
+              [TrendingUp, "Blijvende waarde", "Bewaar kansen en volg relaties."],
+              [Send, "Direct verder", "Van relevante reactie naar privécontact."],
+            ].map(([Icon, title, body]) => {
+              const SignalIcon = Icon as typeof Globe2;
+              return <div key={String(title)} className="bg-white p-6"><SignalIcon size={19} className="text-[#e25231]" /><p className="mt-4 text-[14px] font-bold">{String(title)}</p><p className="mt-2 text-[13px] leading-5 text-[#757c86]">{String(body)}</p></div>;
+            })}
+          </Reveal>
+        </div>
+      </section>
+
       <section className="relative overflow-hidden bg-[#f5f6f7] px-5 py-20 sm:px-7 sm:py-24">
         <div className="absolute -left-20 bottom-0 h-72 w-72 rounded-full bg-[#f15a37]/10 blur-[90px]" />
         <Reveal className="relative mx-auto grid max-w-[1180px] overflow-hidden rounded-2xl border border-[#292d32] bg-[#17191c] text-white lg:grid-cols-[1.1fr_0.9fr]">
           <div className="p-8 sm:p-12 lg:p-14"><div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/10 text-[#ff7959]"><ShieldCheck size={23} /></div><h2 className="mt-7 max-w-xl text-[32px] font-bold leading-tight tracking-[-0.04em] sm:text-[40px]">Professioneel netwerken begint met vertrouwen.</h2><p className="mt-4 max-w-xl text-[16px] leading-7 text-[#b8bdc5]">Duidelijke bedrijfsinformatie, rapportagefuncties en actief platformbeheer helpen om contact relevant en professioneel te houden.</p></div>
-          <div className="border-t border-white/10 bg-[#202328] p-8 sm:p-12 lg:border-l lg:border-t-0 lg:p-14"><p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[#9299a3]">Klaar om te beginnen?</p><p className="mt-4 text-[22px] font-semibold leading-8">Zet je bedrijf professioneel op de kaart binnen Vynta.</p><Link href="/onboarding" className="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-[14px] font-bold text-[#17191c] transition-all hover:-translate-y-1 hover:bg-[#eceef0]">Bedrijf aanmelden <ArrowRight size={16} /></Link></div>
+          <div className="border-t border-white/10 bg-[#202328] p-8 sm:p-12 lg:border-l lg:border-t-0 lg:p-14"><p className="text-[12px] font-bold uppercase tracking-[0.16em] text-[#9299a3]">Klaar om te beginnen?</p><p className="mt-4 text-[22px] font-semibold leading-8">Zet je bedrijf professioneel én gratis op de kaart binnen Vynta.</p><p className="mt-3 text-[13px] leading-6 text-[#9299a3]">Geen abonnement nodig om je profiel te maken.</p><Link href="/onboarding" className="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-[14px] font-bold text-[#17191c] transition-all hover:-translate-y-1 hover:bg-[#eceef0]">Gratis aanmelden <ArrowRight size={16} /></Link></div>
         </Reveal>
       </section>
     </MarketingShell>
