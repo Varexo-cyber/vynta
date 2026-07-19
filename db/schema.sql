@@ -35,7 +35,26 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash text NOT NULL,
   name          text NOT NULL DEFAULT '',
   role          text NOT NULL DEFAULT 'owner',
+  auth_provider text NOT NULL DEFAULT 'password',
+  google_subject text,
   created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_subject
+  ON users(google_subject)
+  WHERE google_subject IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS oauth_signup_intents (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  token_hash       text UNIQUE NOT NULL,
+  provider         text NOT NULL,
+  provider_subject text NOT NULL,
+  email            text NOT NULL,
+  display_name     text NOT NULL DEFAULT '',
+  avatar_url       text,
+  expires_at       timestamptz NOT NULL,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(provider, provider_subject)
 );
 
 CREATE TABLE IF NOT EXISTS sessions (

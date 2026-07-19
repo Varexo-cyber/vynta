@@ -7,12 +7,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Building2, Globe, Map, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
-import { signUp, joinNetworks } from "@/lib/actions";
+import { signUp, signUpWithGoogle, joinNetworks } from "@/lib/actions";
 import { initials, cn } from "@/lib/utils";
 import { INDUSTRIES } from "@/lib/constants";
 import { getMunicipalityByName, getProvinceByName } from "@/lib/dutch-networks";
 import type { Network } from "@/lib/types";
-import { ThemedLogo } from "@/components/themed-logo";
+import { VyntaBrand } from "@/components/vynta-brand";
+import { GoogleIcon } from "@/components/google-icon";
+import type { PendingGoogleProfile } from "@/lib/google-auth";
 
 function formatPostcode(pc: string) {
   return pc.replace(/^(\d{4})([A-Z]{2})$/i, "$1 $2").toUpperCase();
@@ -39,11 +41,11 @@ function networkIcon(type: string) {
   return <Building2 size={20} />;
 }
 
-export function OnboardingClient({ networks }: { networks: Network[] }) {
+export function OnboardingClient({ networks, googleProfile }: { networks: Network[]; googleProfile: PendingGoogleProfile | null }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(googleProfile?.email ?? "");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [address, setAddress] = useState("");
@@ -79,7 +81,7 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
     step === 0 ? name.trim().length > 1 && !!industry :
     step === 1 ? !!country && !!province && !!city :
     step === 2 ? !!address && !!postcode && !!phone :
-    step === 3 ? !!email && password.length >= 10 :
+    step === 3 ? Boolean(googleProfile) || (!!email && password.length >= 10) :
     step === 4 ? selectedNetworks.length > 0 :
     step === 5 ? goals.length > 0 :
     true;
@@ -92,10 +94,8 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
     if (step === 3) {
       setLoading(true);
       setError(null);
-      const res = await signUp({
+      const companyInput = {
         companyName: name,
-        email,
-        password,
         phone,
         address,
         postcode,
@@ -107,7 +107,10 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
         industry,
         kvkNumber: kvkNumber || undefined,
         vatNumber: vatNumber || undefined,
-      });
+      };
+      const res = googleProfile
+        ? await signUpWithGoogle(companyInput)
+        : await signUp({ ...companyInput, email, password });
       setLoading(false);
       if (!res.ok) {
         setError(res.error ?? "Account aanmaken mislukt");
@@ -152,16 +155,7 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
         }}
       />
       <div className="relative flex items-center justify-between px-6 py-5">
-        <Link href="/" className="flex items-center">
-          <ThemedLogo
-            height={32}
-            fallbackSrc="/logoaa.png"
-            className="h-8 w-8 object-cover mix-blend-screen drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
-          />
-          <span className="-ml-1 text-base font-bold leading-none text-foreground drop-shadow-[0_0_4px_rgba(255,255,255,0.5)]">
-            ynta
-          </span>
-        </Link>
+        <VyntaBrand size={34} textClassName="text-foreground" />
       </div>
 
       <div className="mx-auto flex w-full max-w-md gap-2 px-6">
@@ -311,7 +305,19 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight">Account</h1>
                 <p className="mt-2 text-base text-muted">Maak je zakelijk account aan.</p>
-                <div className="mt-8 grid gap-3">
+                {googleProfile ? (
+                  <div className="mt-8 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white"><GoogleIcon size={20} /></span>
+                    <div className="min-w-0"><p className="font-semibold text-foreground">Google is gekoppeld</p><p className="truncate text-sm text-muted">{googleProfile.email}</p></div>
+                    <Check size={18} className="ml-auto shrink-0 text-emerald-500" />
+                  </div>
+                ) : (
+                  <>
+                    <Link href="/api/auth/google/start" className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface text-sm font-semibold transition-all hover:-translate-y-0.5 hover:bg-surface-2"><GoogleIcon /> Doorgaan met Google</Link>
+                    <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />of met e-mail<span className="h-px flex-1 bg-border" /></div>
+                  </>
+                )}
+                {!googleProfile && <div className="grid gap-3">
                   <input
                     type="email"
                     autoFocus
@@ -327,7 +333,8 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
                     placeholder="Wachtwoord (min. 10 tekens)"
                     className="w-full rounded-2xl bg-surface px-4 py-3.5 text-[17px] outline-none placeholder:text-muted focus:ring-1 focus:ring-inset focus:ring-border-strong"
                   />
-                </div>
+                </div>}
+                {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
               </div>
             )}
 

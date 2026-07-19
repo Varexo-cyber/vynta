@@ -31,6 +31,7 @@ import {
   type OwnerReport,
 } from "@/lib/platform-admin";
 import type { AccountStatus, PlatformRole } from "@/lib/auth";
+import { GoogleIcon } from "@/components/google-icon";
 
 type Tab = "overview" | "reports" | "posts" | "accounts" | "audit";
 type DialogAction =
@@ -180,7 +181,10 @@ export function OwnerDashboardClient({ data }: { data: OwnerDashboardData }) {
                         <RoleBadge role={account.platformRole} />
                         <StatusBadge status={account.accountStatus} />
                       </div>
-                      <p className="mt-1 text-sm text-muted">{account.email} · @{account.handle}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+                        <span>{account.email} · @{account.handle}</span>
+                        <AuthProviderBadge provider={account.authProvider} />
+                      </div>
                       <p className="mt-2 text-xs text-muted">{account.posts} posts · {account.reportsReceived} meldingen ontvangen · sinds {formatDate(account.createdAt)}</p>
                       <dl className="mt-3 grid gap-x-6 gap-y-1 text-xs text-muted sm:grid-cols-2 xl:grid-cols-3">
                         <div><dt className="inline font-semibold text-foreground">Sector: </dt><dd className="inline">{account.industry || "Niet ingevuld"}</dd></div>
@@ -401,6 +405,11 @@ function SearchField({ value, onChange, placeholder }: { value: string; onChange
 
 function RoleBadge({ role }: { role: PlatformRole }) {
   return <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide", role === "owner" ? "bg-purple-500/10 text-purple-700" : role === "admin" ? "bg-blue-500/10 text-blue-700" : "bg-surface-2 text-muted")}>{role}</span>;
+}
+
+function AuthProviderBadge({ provider }: { provider: OwnerDashboardData["accounts"][number]["authProvider"] }) {
+  const label = provider === "google" ? "Google" : provider === "password_google" ? "Google + wachtwoord" : "Wachtwoord";
+  return <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted">{provider !== "password" && <GoogleIcon size={11} />}{label}</span>;
 }
 
 function StatusBadge({ status, label }: { status: AccountStatus; label?: string }) {

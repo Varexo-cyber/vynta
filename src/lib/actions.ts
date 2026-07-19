@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
+import { randomBytes } from "node:crypto";
 import type postgres from "postgres";
 import { sql } from "./db";
 import {
@@ -16,6 +17,7 @@ import {
 import type { PostType, LinkPreviewData, PostAttachment, DraftData, Draft } from "./types";
 import { sanitizeHtml } from "./rich-text";
 import { getMunicipalityByName, getProvinceByName } from "./dutch-networks";
+import { clearPendingGoogleSignup, getPendingGoogleIdentity } from "./google-auth";
 
 function slugify(name: string) {
   return (
@@ -140,6 +142,111 @@ export async function signUp(input: {
 
   await createSession(userId);
 
+  return { ok: true };
+}
+
+export async function signUpWithGoogle(input: {
+  companyName: string;
+  phone: string;
+  address: string;
+  postcode: string;
+  city: string;
+  province: string;
+  country: string;
+  municipality?: string;
+  municipalityId?: string;
+  industry: string;
+  description?: string;
+  website?: string;
+  kvkNumber?: string;
+  vatNumber?: string;
+  logoUrl?: string;
+}): Promise<Result> {
+  const identity = await getPendingGoogleIdentity();
+  if (!identity) return { ok: false, error: "Je Google-koppeling is verlopen. Koppel Google opnieuw." };
+
+  if (input.companyName.length > 120 || input.phone.length > 40 || input.address.length > 180 || input.postcode.length > 16 || input.city.length > 100 || input.province.length > 100 || input.industry.length > 120) {
+    return { ok: false, error: "Een of meer velden zijn te lang." };
+  }
+  if ((input.description?.length ?? 0) > 3000 || (input.website?.length ?? 0) > 500 || (input.kvkNumber?.length ?? 0) > 32 || (input.vatNumber?.length ?? 0) > 32) {
+    return { ok: false, error: "Een of meer optionele velden zijn te lang." };
+  }
+  if (input.website) {
+    try {
+      const website = new URL(input.website);
+      if (website.protocol !== "https:" && website.protocol !== "http:") throw new Error("invalid protocol");
+    } catch {
+      return { ok: false, error: "Vul een geldige website in, inclusief https://." };
+    }
+  }
+  if (!input.companyName.trim()) return { ok: false, error: "Bedrijfsnaam is verplicht." };
+  if (!input.phone.trim()) return { ok: false, error: "Telefoonnummer is verplicht." };
+  if (!input.address.trim() || !input.postcode.trim() || !input.city.trim() || !input.province.trim() || !input.country.trim()) {
+    return { ok: false, error: "Adres, postcode, stad, provincie en land zijn verplicht." };
+  }
+  if (!input.industry.trim()) return { ok: false, error: "Sector is verplicht." };
+  if (input.country.trim().toLowerCase() !== "nederland") return { ok: false, error: "Vynta is voorlopig alleen beschikbaar voor Nederlandse bedrijven." };
+
+  let handle = slugify(input.companyName);
+  const taken = await sql`SELECT 1 FROM companies WHERE handle = ${handle} LIMIT 1`;
+  if (taken.length > 0) handle = `${handle}-${Math.random().toString(36).slice(2, 6)}`;
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const passwordHash = await hashPassword(randomBytes(64).toString("base64url"));
+  const membershipIds: string[] = [];
+  const municipality = getMunicipalityByName(input.municipality || input.city);
+  if (municipality) membershipIds.push(municipality.id);
+  const province = getProvinceByName(input.province);
+  if (province) membershipIds.push(`prov-${province.code}`);
+  membershipIds.push(`ind-${input.industry.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, "nat-nl");
+  const uniqueMembershipIds = Array.from(new Set(membershipIds)).filter(Boolean);
+
+  let userId: string;
+  try {
+    userId = await sql.begin(async (tx) => {
+      const intentRows = await tx`
+        SELECT provider_subject, email FROM oauth_signup_intents
+        WHERE token_hash = ${identity.tokenHash} AND provider = 'google' AND expires_at > now()
+        FOR UPDATE
+      `;
+      if (intentRows.length === 0 || intentRows[0].provider_subject !== identity.subject || intentRows[0].email !== identity.email) {
+        throw new Error("OAUTH_INTENT_EXPIRED");
+      }
+      const existing = await tx`SELECT 1 FROM users WHERE email = ${identity.email} OR google_subject = ${identity.subject} LIMIT 1`;
+      if (existing.length > 0) throw new Error("OAUTH_ACCOUNT_EXISTS");
+
+      const [company] = await tx`
+        INSERT INTO companies (
+          name, handle, logo_color, industry, city, province, country, municipality,
+          municipality_id, address, postcode, description, website, phone, email,
+          kvk_number, vat_number, logo_url
+        ) VALUES (
+          ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry}, ${input.city},
+          ${input.province}, ${input.country}, ${input.municipality || null}, ${input.municipalityId || null},
+          ${input.address}, ${input.postcode}, ${input.description || null}, ${input.website || null},
+          ${input.phone}, ${identity.email}, ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
+        ) RETURNING id
+      `;
+      const companyId = company.id as string;
+      const [user] = await tx`
+        INSERT INTO users (company_id, email, password_hash, name, role, auth_provider, google_subject)
+        VALUES (${companyId}, ${identity.email}, ${passwordHash}, ${input.companyName.trim()}, 'owner', 'google', ${identity.subject})
+        RETURNING id
+      `;
+      for (const networkId of uniqueMembershipIds) {
+        await tx`INSERT INTO network_members (company_id, network_id, origin) VALUES (${companyId}, ${networkId}, 'system') ON CONFLICT DO NOTHING`;
+      }
+      await tx`DELETE FROM oauth_signup_intents WHERE token_hash = ${identity.tokenHash}`;
+      return user.id as string;
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "OAUTH_INTENT_EXPIRED") return { ok: false, error: "Je Google-koppeling is verlopen. Koppel Google opnieuw." };
+    if (error instanceof Error && error.message === "OAUTH_ACCOUNT_EXISTS") return { ok: false, error: "Dit Google-account is al gekoppeld. Log in via de inlogpagina." };
+    if (error && typeof error === "object" && "code" in error && error.code === "23505") return { ok: false, error: "Dit e-mailadres of deze bedrijfsnaam is al in gebruik." };
+    throw error;
+  }
+
+  await createSession(userId);
+  await clearPendingGoogleSignup();
   return { ok: true };
 }
 

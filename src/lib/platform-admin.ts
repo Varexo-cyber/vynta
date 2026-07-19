@@ -58,6 +58,7 @@ export interface OwnerAccount {
   vatNumber: string | null;
   platformRole: PlatformRole;
   accountStatus: AccountStatus;
+  authProvider: "password" | "google" | "password_google";
   companyVerified: boolean;
   adminNotes: string | null;
   posts: number;
@@ -162,7 +163,8 @@ export async function getOwnerDashboardData(): Promise<OwnerDashboardData> {
     `,
     sql`
       SELECT u.id AS user_id, u.company_id, u.email, u.name AS user_name, u.platform_role,
-             u.account_status, u.admin_notes, u.created_at,
+             u.account_status, COALESCE(u.auth_provider, 'password') AS auth_provider,
+             u.admin_notes, u.created_at,
              c.name AS company_name, c.handle, c.verified, c.industry, c.city, c.province,
              c.country, c.phone, c.website, c.kvk_number, c.vat_number,
              (SELECT COUNT(*) FROM needs n WHERE n.company_id = c.id) AS posts,
@@ -260,6 +262,7 @@ export async function getOwnerDashboardData(): Promise<OwnerDashboardData> {
       vatNumber: r.vat_number as string | null,
       platformRole: r.platform_role as PlatformRole,
       accountStatus: r.account_status as AccountStatus,
+      authProvider: r.auth_provider as OwnerAccount["authProvider"],
       companyVerified: Boolean(r.verified),
       adminNotes: r.admin_notes as string | null,
       posts: Number(r.posts),
