@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import { Logo } from "@/components/app-shell";
 import { Button } from "@/components/ui/primitives";
 import { signIn } from "@/lib/actions";
 
@@ -33,13 +33,18 @@ export default function AuthPage() {
     <div className="dark grid min-h-screen bg-background text-foreground lg:grid-cols-2">
       {/* Brand panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-foreground p-10 text-background lg:flex">
-        <Link href="/" className="group relative inline-flex items-center transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.02]">
-          <img
-            src="/logo.png"
-            alt="Vynta"
-            className="h-[40px] w-[40px] object-contain"
-          />
-          <span className="ml-2 text-[26px] font-bold leading-none text-black">
+        <Link href="/" className="group relative inline-flex items-center gap-1.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.02]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px]">
+            <Image
+              src="/logo.png"
+              alt="Vynta"
+              width={40}
+              height={40}
+              unoptimized
+              className="h-full w-full scale-[1.6] object-cover"
+            />
+          </span>
+          <span className="text-[17px] font-bold leading-none text-black">
             ynta
           </span>
         </Link>
