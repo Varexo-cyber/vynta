@@ -182,7 +182,7 @@ export function OpportunityDetailClient({
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-9 xl:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground focus-ring"><ArrowLeft size={16} /> Terug naar kansen</button>
+        <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground focus-ring"><ArrowLeft size={16} /> Terug naar kansen</Link>
         <div className="flex items-center gap-2">
           {!isOwner && <button type="button" onClick={() => void toggleSaved()} disabled={pending === "save"} className={cn("inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors", saved ? "border-foreground bg-foreground text-background" : "border-border hover:bg-surface")} aria-pressed={saved}><Bookmark size={15} fill={saved ? "currentColor" : "none"} />{saved ? "Opgeslagen" : "Opslaan"}</button>}
           {isOwner && <Link href={`/opportunities/${opportunity.id}/edit`} className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-semibold hover:bg-surface"><Edit3 size={15} /> Bewerken</Link>}
