@@ -67,7 +67,7 @@ try {
 
     await tx`
       INSERT INTO admin_audit_log (actor_user_id, action, target_type, target_id, metadata)
-      VALUES (${users[0].id}, 'owner_bootstrapped', 'user', ${users[0].id}, ${JSON.stringify({ email })}::jsonb)
+      VALUES (${users[0].id}, 'owner_bootstrapped', 'user', ${users[0].id}, ${JSON.stringify({ source: "bootstrap" })}::jsonb)
     `;
   });
 
