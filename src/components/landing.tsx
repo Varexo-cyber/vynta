@@ -33,9 +33,9 @@ const TICKER = [
 ];
 
 const PILLARS = [
-  { icon: Compass, title: "Ontdek kansen", body: "Een live feed van wat bedrijven nodig hebben en aanbieden — elke ochtend nieuwe deals." },
+  { icon: Compass, title: "Ontdek kansen", body: "Bekijk wat bedrijven nodig hebben, aanbieden en met hun netwerk delen." },
   { icon: MessagesSquare, title: "Doe zaken", body: "Snel, professioneel B2B-berichtenverkeer. Elk gesprek start met echte context." },
-  { icon: ShieldCheck, title: "Bouw vertrouwen", body: "Geverifieerde bedrijven, beoordelingen en reactiesnelheden. Reputatie waarop je kunt bouwen." },
+  { icon: ShieldCheck, title: "Bouw vertrouwen", body: "Duidelijke bedrijfsprofielen, verificatie en directe zakelijke communicatie." },
 ];
 
 const NETWORKS = [
@@ -67,7 +67,7 @@ export function Landing() {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/auth"><Button variant="ghost" size="sm">Inloggen</Button></Link>
-            <Link href="/auth"><Button size="sm">Word lid</Button></Link>
+            <Link href="/onboarding"><Button size="sm">Word lid</Button></Link>
           </div>
         </div>
       </header>
@@ -88,7 +88,7 @@ export function Landing() {
             className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-muted"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-            Het besturingssysteem voor zakelijk netwerken in Nederland
+            Het digitale bedrijfsnetwerk van Nederland
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -107,8 +107,8 @@ export function Landing() {
             transition={{ delay: 0.12 }}
             className="mx-auto mt-5 max-w-xl text-lg text-muted"
           >
-            Vynta is waar bedrijven wereldwijd kansen ontdekken, zaken doen en
-            vertrouwen opbouwen. Geen berichten. Kansen.
+            Vynta brengt Nederlandse bedrijven samen om kansen te ontdekken,
+            contacten op te bouwen en zaken te doen.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -121,8 +121,8 @@ export function Landing() {
                 Word lid <ArrowRight size={18} />
               </Button>
             </Link>
-            <Link href="/feed">
-              <Button variant="outline" size="lg">Bekijk de feed</Button>
+            <Link href="/auth">
+              <Button variant="outline" size="lg">Inloggen</Button>
             </Link>
           </motion.div>
         </div>
@@ -130,6 +130,9 @@ export function Landing() {
 
       {/* Demand ticker */}
       <section className="relative overflow-hidden py-8">
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          Voorbeelden van zakelijke vragen
+        </p>
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-background to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />
         <div className="flex w-max animate-marquee gap-3">
@@ -173,7 +176,7 @@ export function Landing() {
           Vind je mensen. Doe zaken.
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-muted">
-          Automatisch verbonden via je gemeente, provincie, sector en het landelijke netwerk. Geen zoeken, wel relevante zakelijke contacten.
+          Word automatisch verbonden via je gemeente, provincie, sector en het landelijke netwerk.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-2.5">
           {NETWORKS.map((c) => (
@@ -203,8 +206,8 @@ export function Landing() {
             Zaken draaien op vertrouwen.
           </h2>
           <p className="mx-auto mt-3 max-w-md text-muted">
-            Verificatiebadges, beoordelingen en reactiesnelheden — zodat je altijd
-            weet met wie je zaken doet.
+            Verificatiebadges en complete bedrijfsprofielen helpen je om zakelijke
+            contacten zorgvuldig te beoordelen.
           </p>
           <Link href="/onboarding" className="mt-8 inline-block">
             <Button size="lg">
@@ -222,7 +225,7 @@ export function Landing() {
             <span className="font-medium text-foreground">Vynta</span>
             <span>— Het Zakelijke Netwerk</span>
           </div>
-          <p>© {new Date().getFullYear()} Vynta. Ontworpen om onvermijdelijk te voelen.</p>
+          <p>© {new Date().getFullYear()} Vynta. Alle rechten voorbehouden.</p>
         </div>
       </footer>
     </div>

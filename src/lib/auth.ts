@@ -38,9 +38,15 @@ export async function destroySession() {
   }
 }
 
-interface SessionUser {
+export type PlatformRole = "member" | "admin" | "owner";
+export type AccountStatus = "active" | "suspended" | "deactivated";
+
+export interface SessionUser {
   userId: string;
   email: string;
+  companyRole: string;
+  platformRole: PlatformRole;
+  accountStatus: AccountStatus;
   company: Company;
 }
 
@@ -50,7 +56,10 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null;
 
   const rows = await sql`
-    SELECT u.id AS user_id, u.email, c.*
+    SELECT u.id AS user_id, u.email, u.role AS user_role,
+           COALESCE(to_jsonb(u)->>'platform_role', 'member') AS platform_role,
+           COALESCE(to_jsonb(u)->>'account_status', 'active') AS account_status,
+           c.*
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     JOIN companies c ON c.id = u.company_id
@@ -58,6 +67,7 @@ export async function getSession(): Promise<SessionUser | null> {
     LIMIT 1`;
   if (rows.length === 0) return null;
   const r = rows[0];
+  if (r.account_status !== "active") return null;
 
   const nets = await sql`
     SELECT network_id FROM network_members WHERE company_id = ${r.id}`;
@@ -95,11 +105,34 @@ export async function getSession(): Promise<SessionUser | null> {
     networks: nets.map((x) => x.network_id),
   };
 
-  return { userId: r.user_id, email: r.email, company };
+  return {
+    userId: r.user_id,
+    email: r.email,
+    companyRole: r.user_role,
+    platformRole: r.platform_role as PlatformRole,
+    accountStatus: r.account_status as AccountStatus,
+    company,
+  };
 }
 
 export async function requireCompanyId(): Promise<string> {
   const session = await getSession();
   if (!session) throw new Error("UNAUTHENTICATED");
   return session.company.id;
+}
+
+export async function requirePlatformAdmin(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) throw new Error("UNAUTHENTICATED");
+  if (session.platformRole !== "admin" && session.platformRole !== "owner") {
+    throw new Error("FORBIDDEN");
+  }
+  return session;
+}
+
+export async function requirePlatformOwner(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) throw new Error("UNAUTHENTICATED");
+  if (session.platformRole !== "owner") throw new Error("FORBIDDEN");
+  return session;
 }

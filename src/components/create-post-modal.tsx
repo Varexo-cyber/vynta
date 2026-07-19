@@ -36,7 +36,7 @@ import { Button } from "./ui/primitives";
 import { cn } from "@/lib/utils";
 import { PostCard } from "./need-card";
 import { RichTextEditor } from "./rich-text-editor";
-import { htmlToPlainText, isFormattedBody, plainTextToHtml } from "@/lib/rich-text";
+import { htmlToPlainText, isFormattedBody } from "@/lib/rich-text";
 import type { Draft } from "@/lib/types";
 
 export function CreatePostModal() {
@@ -56,6 +56,7 @@ export function CreatePostModal() {
   const [showRestore, setShowRestore] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<Draft | null>(null);
   const [draftToastShown, setDraftToastShown] = useState(false);
+  const [previewBaseTime] = useState(() => Date.now());
   const publishedRef = useRef(false);
 
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
@@ -111,15 +112,15 @@ export function CreatePostModal() {
       views: 0,
       saved: false,
       liked: false,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(previewBaseTime).toISOString(),
       expiresAt:
         expiresDays == null
           ? new Date("2999-12-31T00:00:00Z").toISOString()
-          : new Date(Date.now() + expiresDays * 86400000).toISOString(),
+          : new Date(previewBaseTime + expiresDays * 86400000).toISOString(),
       linkUrl: linkPreview?.url,
       linkData: linkPreview || undefined,
     }),
-    [me.id, type, body, quantity, budget, attachments, displayedSelected, expiresDays, linkPreview]
+    [me.id, type, body, bodyText, quantity, budget, attachments, displayedSelected, expiresDays, linkPreview, previewBaseTime]
   );
 
   const reset = () => {
@@ -163,18 +164,23 @@ export function CreatePostModal() {
 
   useEffect(() => {
     if (!createOpen) return;
-    setShowRestore(false);
-    if (draftToLoad) {
-      loadDraft(draftToLoad);
-      setDraftToLoad(null);
-      return;
-    }
-    getDrafts().then((drafts) => {
-      if (drafts.length > 0) {
-        setPendingDraft(drafts[0]);
-        setShowRestore(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setShowRestore(false);
+      if (draftToLoad) {
+        loadDraft(draftToLoad);
+        setDraftToLoad(null);
+        return;
       }
+      getDrafts().then((drafts) => {
+        if (!cancelled && drafts.length > 0) {
+          setPendingDraft(drafts[0]);
+          setShowRestore(true);
+        }
+      });
     });
+    return () => { cancelled = true; };
   }, [createOpen, draftToLoad, setDraftToLoad, loadDraft]);
 
   useEffect(() => {
@@ -182,8 +188,7 @@ export function CreatePostModal() {
     const hasContent = bodyText.trim() || attachments.length > 0;
     if (!hasContent) {
       if (draftId) {
-        deleteDraft(draftId);
-        setDraftId(null);
+        deleteDraft(draftId).then(() => setDraftId(null));
       }
       return;
     }
@@ -219,6 +224,7 @@ export function CreatePostModal() {
     draftId,
     draftToastShown,
     toast,
+    bodyText,
   ]);
 
   const extractFirstUrl = useCallback((text: string) => {
@@ -252,9 +258,18 @@ export function CreatePostModal() {
       try {
         const res = await fetch("/api/upload", { method: "POST", body: form, credentials: "same-origin" });
         const text = await res.text();
-        let data: any;
+        let data: {
+          ok?: boolean;
+          error?: string;
+          url?: string;
+          type?: PostAttachment["type"];
+          name?: string;
+          mimeType?: string;
+          width?: number;
+          height?: number;
+        };
         try {
-          data = JSON.parse(text);
+          data = JSON.parse(text) as typeof data;
         } catch {
           console.error("[upload] Non-JSON response, status:", res.status, "body:", text.slice(0, 200));
           if (res.status === 404) {
@@ -268,14 +283,15 @@ export function CreatePostModal() {
           }
           return;
         }
-        if (res.ok && data.ok) {
+        if (res.ok && data.ok && data.url && data.type && data.name) {
+          const uploaded = { url: data.url, type: data.type, name: data.name };
           setAttachments((prev) => [
             ...prev,
             {
               id: crypto.randomUUID(),
-              url: data.url,
-              type: data.type,
-              filename: data.name,
+              url: uploaded.url,
+              type: uploaded.type,
+              filename: uploaded.name,
               position: prev.length,
               mimeType: data.mimeType,
               width: data.width,

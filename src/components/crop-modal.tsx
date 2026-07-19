@@ -33,8 +33,10 @@ export function CropModal({
 
   useEffect(() => {
     if (open) {
-      setZoom(1);
-      setOffset({ x: 0, y: 0 });
+      queueMicrotask(() => {
+        setZoom(1);
+        setOffset({ x: 0, y: 0 });
+      });
     }
   }, [open, imageUrl]);
 

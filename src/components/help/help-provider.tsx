@@ -38,6 +38,7 @@ import {
   type AssistantConversation,
 } from "@/lib/assistant-server";
 import { useApp } from "@/components/app-store";
+import type { PostType } from "@/lib/types";
 
 export type ExperienceLevel = "basic" | "normal" | "extensive";
 
@@ -146,7 +147,6 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
   /* Checklist state */
   const [checklistCompleted, setChecklistCompleted] = useState<Set<string>>(new Set());
   const [checklistHidden, setChecklistHidden] = useState(false);
-  const [checklistAutoDetected, setChecklistAutoDetected] = useState<Record<string, boolean>>({});
 
   /* Tour state */
   const [activeTour, setActiveTour] = useState<TourDef | null>(null);
@@ -213,14 +213,16 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    loadOnboarding();
-    loadChecklist();
-    loadPreferences();
-    loadConversations();
+    queueMicrotask(() => {
+      loadOnboarding();
+      loadChecklist();
+      loadPreferences();
+      loadConversations();
+    });
   }, [loadOnboarding, loadChecklist, loadPreferences, loadConversations]);
 
   /* Auto-detect checklist */
-  useEffect(() => {
+  const checklistAutoDetected = useMemo(() => {
     const detect: Record<string, boolean> = {};
     for (const task of CHECKLIST_TASKS) {
       if (!task.detectKey) continue;
@@ -254,7 +256,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
           break;
       }
     }
-    setChecklistAutoDetected(detect);
+    return detect;
   }, [me, myNetworks]);
 
   const checklistProgress = useMemo(
@@ -577,7 +579,8 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
 
       if (action.command === "openCreatePost") {
         const type = action.params?.type ?? null;
-        setCreateType(type as any);
+        const allowedTypes: PostType[] = ["offer", "hiring", "milestone", "question", "event", "update"];
+        setCreateType(type && allowedTypes.includes(type as PostType) ? (type as PostType) : null);
         setCreateOpen(true);
         return;
       }

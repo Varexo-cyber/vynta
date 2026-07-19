@@ -368,7 +368,7 @@ function MediaLightbox({
   }, []);
 
   useEffect(() => {
-    showControls();
+    queueMicrotask(showControls);
     return () => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
