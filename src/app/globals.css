@@ -264,13 +264,13 @@ input:-webkit-autofill:active {
   transition: background-color 160ms ease, opacity 160ms ease;
 }
 .owner-action {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   border: 1px solid var(--border);
   padding: 0 1rem;
   font-size: 0.875rem;
 }
 .response-action {
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   padding: 0 0.875rem;
   font-size: 0.75rem;
 }

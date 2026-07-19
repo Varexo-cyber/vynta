@@ -192,7 +192,7 @@ export function OpportunitiesClient({
             <span className="sr-only">Kansen zoeken</span>
             <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input key={filters.query ?? ""} name="q" defaultValue={filters.query ?? ""} placeholder="Zoek naar opdrachten, partners, leveranciers of diensten" className="h-12 w-full rounded-xl border border-border bg-surface pl-11 pr-20 text-sm outline-none transition-colors placeholder:text-subtle focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5" />
-            <button type="submit" className="absolute right-2 top-1/2 h-8 -translate-y-1/2 rounded-full px-3 text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground">Zoek</button>
+            <button type="submit" className="absolute right-1 top-1/2 h-10 min-w-12 -translate-y-1/2 rounded-full px-3 text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground">Zoek</button>
           </form>
           <button type="button" onClick={() => setShowFilters((open) => !open)} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-colors focus-ring", showFilters || activeFilters.length ? "border-foreground bg-foreground text-background" : "border-border bg-surface hover:border-border-strong")} aria-expanded={showFilters}>
             <Filter size={17} /> Filters {activeFilters.length > 0 && <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-brand-fg">{activeFilters.length}</span>}
@@ -211,8 +211,8 @@ export function OpportunitiesClient({
 
         {activeFilters.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {activeFilters.map((chip) => <button key={chip.key} type="button" onClick={() => updateQuery({ [chip.key]: undefined })} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium hover:border-border-strong"><span>{chip.label}</span><X size={12} /></button>)}
-            <button type="button" onClick={resetFilters} className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-muted hover:text-foreground"><RotateCcw size={12} /> Wis filters</button>
+            {activeFilters.map((chip) => <button key={chip.key} type="button" onClick={() => updateQuery({ [chip.key]: undefined })} className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium hover:border-border-strong"><span>{chip.label}</span><X size={12} /></button>)}
+            <button type="button" onClick={resetFilters} className="inline-flex min-h-10 items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-muted hover:text-foreground"><RotateCcw size={12} /> Wis filters</button>
           </div>
         )}
       </section>
@@ -295,7 +295,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
 }
 
 function FilterText({ label, value, onSubmit }: { label: string; value: string; onSubmit: (value: string) => void }) {
-  return <form onSubmit={(event) => { event.preventDefault(); onSubmit(String(new FormData(event.currentTarget).get("location") ?? "").trim()); }} className="grid gap-1.5 text-xs font-semibold text-muted"><label htmlFor="opportunity-location">{label}</label><div className="relative"><input key={value} id="opportunity-location" name="location" defaultValue={value === "remote" ? "" : value} placeholder="Plaats of provincie" className="h-10 w-full rounded-lg border border-border bg-background px-3 pr-12 text-sm font-medium text-foreground outline-none focus:border-foreground/40" /><button type="submit" className="absolute right-1 top-1 h-8 rounded-md px-2 text-[11px] font-semibold hover:bg-surface-2">OK</button></div><button type="button" onClick={() => onSubmit(value === "remote" ? "" : "remote")} className="text-left text-[11px] font-medium text-muted underline underline-offset-2">{value === "remote" ? "Alle locaties tonen" : "Alleen op afstand"}</button></form>;
+  return <form onSubmit={(event) => { event.preventDefault(); onSubmit(String(new FormData(event.currentTarget).get("location") ?? "").trim()); }} className="grid gap-1.5 text-xs font-semibold text-muted"><label htmlFor="opportunity-location">{label}</label><div className="relative"><input key={value} id="opportunity-location" name="location" defaultValue={value === "remote" ? "" : value} placeholder="Plaats of provincie" className="h-10 w-full rounded-lg border border-border bg-background px-3 pr-12 text-sm font-medium text-foreground outline-none focus:border-foreground/40" /><button type="submit" className="absolute right-0 top-0 h-10 min-w-11 rounded-md px-2 text-[11px] font-semibold hover:bg-surface-2">OK</button></div><button type="button" onClick={() => onSubmit(value === "remote" ? "" : "remote")} className="inline-flex min-h-10 items-center text-left text-[11px] font-medium text-muted underline underline-offset-2">{value === "remote" ? "Alle locaties tonen" : "Alleen op afstand"}</button></form>;
 }
 
 function DraftRow({ draft }: { draft: OpportunityDraft }) {
