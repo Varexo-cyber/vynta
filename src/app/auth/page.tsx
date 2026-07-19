@@ -40,6 +40,7 @@ export default function AuthPage() {
               alt="Vynta"
               width={40}
               height={40}
+              unoptimized
               className="h-full w-full scale-[1.6] object-cover"
             />
           </span>
