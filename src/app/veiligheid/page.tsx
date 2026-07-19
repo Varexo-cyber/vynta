@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Eye, Flag, LockKeyhole, Scale, ShieldCheck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check, Eye, FileSearch, Flag, Gavel, LockKeyhole, Scale, ShieldCheck } from "lucide-react";
 import { MarketingShell, Reveal } from "@/components/marketing/marketing-shell";
 
 export const metadata = {
@@ -27,7 +27,7 @@ export default function SafetyPage() {
           <Reveal>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e25231]">Veiligheid en vertrouwen</p>
             <h1 className="mt-5 text-[47px] font-bold leading-[1.06] tracking-[-0.055em] sm:text-[66px]">Vertrouwen ontstaat niet door een mooi vinkje.</h1>
-            <p className="mt-6 max-w-2xl text-[18px] leading-8 text-[#626872]">Het ontstaat wanneer duidelijk is met wie je praat, je ongewenst gedrag kunt melden en platformbeheer zichtbaar verantwoordelijkheid neemt.</p>
+            <p className="mt-6 max-w-2xl text-[18px] leading-8 text-[#626872]">Het ontstaat wanneer duidelijk is met wie je praat, je ongewenst gedrag kunt melden en platformbeheer zichtbaar verantwoordelijkheid neemt. Gratis toegang verandert niets aan die standaard.</p>
           </Reveal>
           <Reveal delay={0.12} className="rounded-2xl border border-[#dfe3e7] bg-[#f6f7f8] p-6 sm:p-8">
             <div className="flex items-center gap-4 border-b border-[#dfe3e7] pb-6"><span className="grid h-12 w-12 place-items-center rounded-xl bg-[#17191c] text-white"><ShieldCheck size={24} /></span><div><p className="font-bold">Veiligheid is een proces</p><p className="mt-1 text-sm text-[#737a84]">Controleren, melden, beoordelen en handelen.</p></div></div>
@@ -49,6 +49,26 @@ export default function SafetyPage() {
                 <p className="mt-3 text-[15px] leading-7 text-[#69707a]">{principle.body}</p>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-[#17191c] px-5 py-20 text-white sm:px-7 sm:py-24">
+        <div className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-[#f15a37]/20 blur-[110px]" />
+        <div className="relative mx-auto max-w-[1180px]">
+          <Reveal className="grid gap-7 border-b border-white/10 pb-10 md:grid-cols-[1fr_0.75fr] md:items-end">
+            <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff8b6f]">Van signaal naar actie</p><h2 className="mt-4 text-[37px] font-bold leading-tight tracking-[-0.045em] sm:text-[49px]">Melden is pas nuttig wanneer er iets mee gebeurt.</h2></div>
+            <p className="text-[15px] leading-7 text-[#aeb4bd]">Daarom houdt Vynta rapportage, beoordeling en beheer gescheiden van de gewone gebruikerservaring.</p>
+          </Reveal>
+          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3">
+            {[
+              [Flag, "01", "Melden", "Een gebruiker rapporteert een post of gesprek met relevante context."],
+              [FileSearch, "02", "Beoordelen", "De melding komt terecht in de afzonderlijke beheeromgeving."],
+              [Gavel, "03", "Handelen", "De beheerder kan content verwijderen of een account beperken wanneer dat nodig is."],
+            ].map(([Icon, number, title, body], index) => {
+              const StepIcon = Icon as typeof Flag;
+              return <Reveal key={String(title)} delay={index * 0.07} className="bg-[#1d2024] p-7 sm:p-9"><div className="flex items-center justify-between"><span className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-[#ff8b6f]"><StepIcon size={20} /></span><span className="text-xs font-bold text-[#6f7782]">{String(number)}</span></div><h3 className="mt-7 text-xl font-bold">{String(title)}</h3><p className="mt-3 text-[14px] leading-6 text-[#9fa6b0]">{String(body)}</p><div className="mt-6 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#39b889]"><Check size={14} /> Herleidbaar proces</div></Reveal>;
+            })}
           </div>
         </div>
       </section>

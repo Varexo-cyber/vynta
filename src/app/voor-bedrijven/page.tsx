@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, BriefcaseBusiness, Factory, Handshake, MapPin, PackageSearch, Store } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Check, CircleDollarSign, Factory, Handshake, MapPin, MessageCircle, PackageSearch, Store, Users } from "lucide-react";
 import { MarketingShell, Reveal } from "@/components/marketing/marketing-shell";
 
 export const metadata = {
   title: "Voor bedrijven | Vynta",
-  description: "Vynta helpt Nederlandse bedrijven om leveranciers, klanten en samenwerkingspartners te vinden.",
+  description: "Maak gratis een bedrijfsprofiel op Vynta en vind leveranciers, klanten en samenwerkingspartners in Nederland.",
 };
 
 const MOMENTS = [
@@ -21,10 +21,10 @@ export default function ForCompaniesPage() {
         <div className="absolute -right-24 top-16 h-96 w-96 rounded-full bg-[#f15a37]/20 blur-[110px]" />
         <div className="relative mx-auto max-w-[1180px] px-5 py-24 sm:px-7 sm:py-32">
           <Reveal className="max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff8c70]">Voor bedrijven</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff8c70]">Gratis voor Nederlandse bedrijven</p>
             <h1 className="mt-5 text-[47px] font-bold leading-[1.06] tracking-[-0.055em] sm:text-[68px]">Je volgende zakelijke contact zit vaak dichterbij dan je denkt.</h1>
-            <p className="mt-7 max-w-2xl text-[18px] leading-8 text-[#c0c5cc]">Vynta maakt zichtbaar welke bedrijven in Nederland iets zoeken, aanbieden of willen opbouwen. Jij bepaalt wanneer een contact relevant genoeg is om te reageren.</p>
-            <Link href="/onboarding" className="mt-9 inline-flex h-12 items-center gap-2 rounded-lg bg-[#f15a37] px-5 text-sm font-bold text-white transition-all hover:-translate-y-1 hover:bg-[#ff6a46] hover:shadow-[0_15px_35px_rgba(241,90,55,.25)]">Zet je bedrijf op Vynta <ArrowRight size={17} /></Link>
+            <p className="mt-7 max-w-2xl text-[18px] leading-8 text-[#c0c5cc]">Vynta is het zakelijke socialmediaplatform dat zichtbaar maakt welke bedrijven in Nederland iets zoeken, aanbieden of willen opbouwen. Jij bepaalt wanneer een contact relevant genoeg is om te reageren.</p>
+            <Link href="/onboarding" className="mt-9 inline-flex h-12 items-center gap-2 rounded-lg bg-[#f15a37] px-5 text-sm font-bold text-white transition-all hover:-translate-y-1 hover:bg-[#ff6a46] hover:shadow-[0_15px_35px_rgba(241,90,55,.25)]">Gratis bedrijfsprofiel maken <ArrowRight size={17} /></Link>
           </Reveal>
         </div>
       </section>
@@ -47,7 +47,28 @@ export default function ForCompaniesPage() {
         </div>
       </section>
 
-      <section className="bg-[#f5f6f7] px-5 py-20 sm:px-7 sm:py-24">
+      <section className="border-y border-[#e1e4e8] bg-[#f5f6f7] px-5 py-20 sm:px-7 sm:py-24">
+        <div className="mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <Reveal>
+            <span className="grid h-12 w-12 place-items-center rounded-xl bg-[#17191c] text-white"><CircleDollarSign size={23} /></span>
+            <p className="mt-7 text-xs font-bold uppercase tracking-[0.18em] text-[#e25231]">Gratis betekent hier: direct beginnen</p>
+            <h2 className="mt-4 text-[38px] font-bold leading-tight tracking-[-0.045em] sm:text-[48px]">Geen abonnement nodig om professioneel zichtbaar te worden.</h2>
+            <p className="mt-5 max-w-xl text-[16px] leading-7 text-[#676e78]">Maak je bedrijf herkenbaar, volg relevante organisaties en reageer wanneer jouw kennis, capaciteit of aanbod echt past.</p>
+          </Reveal>
+          <Reveal delay={0.1} className="overflow-hidden rounded-2xl border border-[#dfe3e7] bg-white shadow-[0_24px_65px_rgba(24,28,33,.09)]">
+            {[
+              [Users, "Een professioneel bedrijfsprofiel", "Je organisatie vormt het vertrekpunt van ieder contact."],
+              [MessageCircle, "Zakelijke posts en gesprekken", "Deel een concrete vraag en praat verder met relevante bedrijven."],
+              [Handshake, "Een netwerk dat je zelf opbouwt", "Volg relaties en kom later terug bij kansen die ertoe doen."],
+            ].map(([Icon, title, body]) => {
+              const RowIcon = Icon as typeof Users;
+              return <div key={String(title)} className="group flex gap-4 border-b border-[#e7e9ec] p-6 last:border-b-0 sm:p-7"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fff0eb] text-[#e25231] transition-transform group-hover:scale-105"><RowIcon size={19} /></span><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-4"><h3 className="font-bold">{String(title)}</h3><Check size={16} className="mt-0.5 shrink-0 text-[#16835b]" /></div><p className="mt-2 text-[14px] leading-6 text-[#727983]">{String(body)}</p></div></div>;
+            })}
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="bg-white px-5 py-20 sm:px-7 sm:py-24">
         <div className="mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <Reveal>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e25231]">Nederlands en relevant</p>
@@ -62,7 +83,7 @@ export default function ForCompaniesPage() {
               [Handshake, "Relatie", "Bouw verder na het eerste contactmoment."],
             ].map(([Icon, title, body]) => {
               const ItemIcon = Icon as typeof MapPin;
-              return <div key={String(title)} className="rounded-xl border border-[#e0e3e7] bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-xl"><ItemIcon size={20} className="text-[#e25231]" /><h3 className="mt-5 font-bold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-[#737a84]">{String(body)}</p></div>;
+              return <div key={String(title)} className="rounded-xl border border-[#e0e3e7] bg-[#f7f8f9] p-6 transition-all hover:-translate-y-1 hover:bg-white hover:shadow-xl"><ItemIcon size={20} className="text-[#e25231]" /><h3 className="mt-5 font-bold">{String(title)}</h3><p className="mt-2 text-sm leading-6 text-[#737a84]">{String(body)}</p></div>;
             })}
           </Reveal>
         </div>
