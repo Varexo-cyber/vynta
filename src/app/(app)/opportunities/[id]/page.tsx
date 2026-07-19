@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getOpportunityById, getResponsesForOpportunity, getCategoryPath, getMatchesForOpportunity, getDistributionRounds } from "@/lib/opportunity-queries";
+import { getOpportunityAccess, getOpportunityById, getResponsesForOpportunity, getCategoryPath, getMatchesForOpportunity, getDistributionRounds } from "@/lib/opportunity-queries";
 import { getSession } from "@/lib/auth";
 import { OpportunityDetailClient } from "./detail-client";
 
@@ -8,13 +8,17 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const session = await getSession();
   if (!session) return null;
 
-  const opportunity = await getOpportunityById(id);
+  const [opportunity, access] = await Promise.all([
+    getOpportunityById(id),
+    getOpportunityAccess(id, session.company.id),
+  ]);
   if (!opportunity) notFound();
+  if (!access.canView) notFound();
 
-  const isOwner = opportunity.companyId === session.company.id;
+  const isOwner = access.isOwner;
 
   const [responses, categoryPath, matches, rounds] = await Promise.all([
-    getResponsesForOpportunity(id),
+    getResponsesForOpportunity(id, session.company.id, isOwner),
     opportunity.categoryId ? getCategoryPath(opportunity.categoryId) : Promise.resolve(""),
     isOwner ? getMatchesForOpportunity(id) : Promise.resolve([]),
     isOwner ? getDistributionRounds(id) : Promise.resolve([]),
@@ -29,6 +33,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       myCompanyId={session.company.id}
       matches={matches}
       rounds={rounds}
+      initiallySaved={access.saved}
+      deadlineExpired={access.deadlineExpired}
     />
   );
 }

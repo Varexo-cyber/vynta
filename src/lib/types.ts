@@ -213,6 +213,7 @@ export type OpportunityType =
 export type OpportunityStatus =
   | "draft"
   | "active"
+  | "paused"
   | "matching"
   | "responses_received"
   | "in_conversation"
@@ -269,6 +270,7 @@ export type MatchStatus =
 export type ResponseStatus =
   | "interested"
   | "question"
+  | "shortlisted"
   | "selected"
   | "not_selected"
   | "withdrawn";
@@ -412,8 +414,13 @@ export interface OpportunityCard extends Opportunity {
   companyLogoColor: string;
   companyLogoUrl?: string;
   companyVerified: boolean;
+  companyIndustry?: string;
+  companyMunicipality?: string;
+  companyProvince?: string;
   categoryPath: string;
   responseCount: number;
+  saved: boolean;
+  matchId?: string;
   matchScore?: number;
   matchReasons?: string[];
   matchStatus?: MatchStatus;
