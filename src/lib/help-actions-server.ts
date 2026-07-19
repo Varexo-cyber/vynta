@@ -319,7 +319,7 @@ export async function processAssistantQuery(
   }
 
   // 3. Find previously given answers to penalize on correction
-  let penalizeArticleIds: string[] = [];
+  const penalizeArticleIds: string[] = [];
   if (intentMatch.isCorrection && conversationHistory && conversationHistory.length > 0) {
     // Find the last assistant answer's article ID
     const lastAssistant = [...conversationHistory].reverse().find((m) => m.role === "assistant");

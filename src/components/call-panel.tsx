@@ -302,7 +302,7 @@ export function CallPanel({
   // Auto-switch to screen-only when screen sharing
   useEffect(() => {
     if (call.isScreenSharing) {
-      setLayoutMode((prev) => (prev === "screen-only" ? prev : "screen-only"));
+      queueMicrotask(() => setLayoutMode("screen-only"));
     }
   }, [call.isScreenSharing]);
 

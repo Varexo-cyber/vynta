@@ -16,6 +16,7 @@ import {
   Settings,
   Bookmark,
   Target,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
@@ -38,7 +39,8 @@ const NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { resolved, toggle } = useTheme();
-  const { me, setCreateOpen, setCreateType, createType, unreadMessages, unreadNotifications, unreadOpportunities, toasts, dismissToast } = useApp();
+  const { me, platformRole, setCreateOpen, setCreateType, createType, unreadMessages, unreadNotifications, unreadOpportunities, toasts, dismissToast } = useApp();
+  const canManagePlatform = platformRole === "admin" || platformRole === "owner";
   const isActive = (href: string) =>
     href === "/feed" ? pathname === "/feed" || pathname === "/" : pathname.startsWith(href);
 
@@ -76,6 +78,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="mt-auto flex flex-col gap-2">
+            {canManagePlatform && (
+              <Link
+                href="/owner"
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname.startsWith("/owner") ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+                )}
+              >
+                <ShieldCheck size={20} />
+                Owner Center
+              </Link>
+            )}
             <Link
               href="/saved"
               className={cn(
@@ -125,6 +139,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo height={30} />
         </Link>
         <div className="flex items-center gap-1">
+          {canManagePlatform && (
+            <Link
+              href="/owner"
+              className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              aria-label="Owner Center"
+            >
+              <ShieldCheck size={20} />
+            </Link>
+          )}
           <Link
             href="/notifications"
             className="relative grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"

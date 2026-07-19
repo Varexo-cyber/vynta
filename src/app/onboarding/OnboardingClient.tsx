@@ -79,7 +79,7 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
     step === 0 ? name.trim().length > 1 && !!industry :
     step === 1 ? !!country && !!province && !!city :
     step === 2 ? !!address && !!postcode && !!phone :
-    step === 3 ? !!email && password.length >= 6 :
+    step === 3 ? !!email && password.length >= 10 :
     step === 4 ? selectedNetworks.length > 0 :
     step === 5 ? goals.length > 0 :
     true;
@@ -324,7 +324,7 @@ export function OnboardingClient({ networks }: { networks: Network[] }) {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Wachtwoord (min. 6 tekens)"
+                    placeholder="Wachtwoord (min. 10 tekens)"
                     className="w-full rounded-2xl bg-surface px-4 py-3.5 text-[17px] outline-none placeholder:text-muted focus:ring-1 focus:ring-inset focus:ring-border-strong"
                   />
                 </div>

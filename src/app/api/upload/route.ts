@@ -69,8 +69,6 @@ function extension(file: File, category: "image" | "video" | "audio" | "document
 }
 
 export async function POST(request: Request) {
-  console.log("[upload] POST received, content-type:", request.headers.get("content-type"));
-
   let session;
   try {
     const { getSession } = await import("@/lib/auth");
@@ -101,8 +99,6 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("[upload] File received:", file.name, "size:", file.size, "type:", file.type);
-
     const category = detectCategory(file.type);
     if (!category || isDangerous(file, category)) {
       return NextResponse.json(
@@ -118,14 +114,18 @@ export async function POST(request: Request) {
         { status: 413 }
       );
     }
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: "Het bestand is leeg.", code: "UPLOAD_EMPTY_FILE" },
+        { status: 400 }
+      );
+    }
 
     const ext = extension(file, category);
     const companyId = session.company.id;
     const storageKey = generateStorageKey(companyId, category, ext);
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    console.log("[upload] Starting storage upload, key:", storageKey, "company:", companyId);
 
     const provider = getStorageProvider();
     const result = await provider.upload(buffer, {
@@ -134,8 +134,6 @@ export async function POST(request: Request) {
       companyId,
       category,
     });
-
-    console.log("[upload] Storage upload succeeded, url:", result.url);
 
     let width: number | undefined;
     let height: number | undefined;
@@ -163,9 +161,8 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[upload] Upload failed:", err);
-    const message = err instanceof Error ? err.message : "Onbekende fout";
     return NextResponse.json(
-      { error: `Upload mislukt: ${message}`, code: "UPLOAD_STORAGE_ERROR" },
+      { error: "Upload mislukt door een serverfout. Probeer het later opnieuw.", code: "UPLOAD_STORAGE_ERROR" },
       { status: 500 }
     );
   }

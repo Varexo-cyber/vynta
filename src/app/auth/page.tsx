@@ -16,24 +16,26 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await signIn(email, password);
+    const result = await signIn(email, password);
     setLoading(false);
-    if (res.ok) {
+    if (result.ok) {
       router.push("/feed");
-    } else {
-      setError(res.error ?? "Inloggen mislukt");
+      return;
     }
+    setError(result.error ?? "Inloggen mislukt");
   };
 
   return (
     <div className="dark grid min-h-screen bg-background text-foreground lg:grid-cols-2">
-      {/* Brand panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-foreground p-10 text-background lg:flex">
-        <Link href="/" className="group relative inline-flex items-center gap-1.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.02]">
+        <Link
+          href="/"
+          className="group relative inline-flex items-center gap-1.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-[1.02]"
+        >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px]">
             <Image
               src="/logo.png"
@@ -44,10 +46,9 @@ export default function AuthPage() {
               className="h-full w-full scale-[1.6] object-cover"
             />
           </span>
-          <span className="text-[17px] font-bold leading-none text-black">
-            ynta
-          </span>
+          <span className="text-[17px] font-bold leading-none text-black">ynta</span>
         </Link>
+
         <div className="relative">
           <h1 className="max-w-md text-4xl font-semibold leading-tight tracking-tight">
             Het digitale bedrijfsnetwerk van Nederland.
@@ -56,16 +57,18 @@ export default function AuthPage() {
             Vind, contacteer en doe zaken met lokale bedrijven in minuten.
           </p>
         </div>
-        <p className="relative text-sm text-background/50">© {new Date().getFullYear()} Vynta</p>
+
+        <p className="relative text-sm text-background/50">
+          © {new Date().getFullYear()} Vynta
+        </p>
       </div>
 
-      {/* Form panel */}
       <div
         className="relative flex flex-col justify-center px-6 py-12 sm:px-16"
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          e.currentTarget.style.setProperty("--x", `${e.clientX - rect.left}px`);
-          e.currentTarget.style.setProperty("--y", `${e.clientY - rect.top}px`);
+        onMouseMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          event.currentTarget.style.setProperty("--x", `${event.clientX - rect.left}px`);
+          event.currentTarget.style.setProperty("--y", `${event.clientY - rect.top}px`);
         }}
       >
         <div
@@ -75,7 +78,10 @@ export default function AuthPage() {
               "radial-gradient(600px circle at var(--x, 50%) var(--y, 50%), rgba(255,90,60,0.12), transparent 40%)",
           }}
         />
-        <Link href="/" className="relative mb-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground lg:hidden">
+        <Link
+          href="/"
+          className="relative mb-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground lg:hidden"
+        >
           <ArrowLeft size={16} /> Terug
         </Link>
 
@@ -87,15 +93,7 @@ export default function AuthPage() {
           <h2 className="text-3xl font-semibold tracking-tight">Welkom terug</h2>
           <p className="mt-2 text-base text-muted">Log in bij je bedrijf.</p>
 
-          <button className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-surface py-3 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-2">
-            <GoogleIcon /> Doorgaan met Google
-          </button>
-
-          <div className="my-6 flex items-center gap-3 text-xs text-muted">
-            <span className="h-px flex-1 bg-border" /> of <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <form onSubmit={submit} className="flex flex-col gap-3">
+          <form onSubmit={submit} className="mt-8 flex flex-col gap-3">
             <Field
               label="Zakelijk e-mailadres"
               type="email"
@@ -111,7 +109,13 @@ export default function AuthPage() {
               onChange={setPassword}
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" size="lg" disabled={loading} className="mt-2 w-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg" variant="accent">
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="mt-2 w-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+              variant="accent"
+            >
               {loading ? "Bezig…" : "Inloggen"}
             </Button>
           </form>
@@ -121,10 +125,6 @@ export default function AuthPage() {
             <Link href="/onboarding" className="font-medium text-foreground hover:underline">
               Account aanmaken
             </Link>
-          </p>
-
-          <p className="mt-3 text-center text-xs text-subtle">
-            Demo: demo@vynta.app / vynta1234
           </p>
         </motion.div>
       </div>
@@ -143,7 +143,7 @@ function Field({
   type: string;
   placeholder: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -151,21 +151,12 @@ function Field({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        required
+        autoComplete={type === "password" ? "current-password" : "email"}
         className="rounded-2xl bg-surface px-4 py-3.5 text-[16px] outline-none transition-all duration-200 placeholder:text-muted focus:ring-1 focus:ring-inset focus:ring-border-strong"
       />
     </label>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
-      <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z" />
-      <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.15 6.16-4.15Z" />
-    </svg>
   );
 }

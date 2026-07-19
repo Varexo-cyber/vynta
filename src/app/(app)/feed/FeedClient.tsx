@@ -9,24 +9,8 @@ import {
   HelpCircle,
   Tag,
   Briefcase,
-  Sprout,
-  Hammer,
-  Leaf,
-  Banknote,
-  Warehouse,
-  UtensilsCrossed,
-  ArrowLeftRight,
-  Factory,
-  ShoppingBag,
-  Monitor,
-  Truck,
-  Building,
-  Package,
-  HeartPulse,
-  Globe,
 } from "lucide-react";
 import { useApp } from "@/components/app-store";
-import { useHelp } from "@/components/help/help-provider";
 import { PersonalRecommendation } from "@/components/help/personal-recommendation";
 import { OnboardingChecklist } from "@/components/help/onboarding-checklist";
 import { PostCard } from "@/components/need-card";
@@ -36,7 +20,6 @@ import { VyntaPromoCarousel } from "@/components/vynta-promo-carousel";
 import { networkIcon } from "@/lib/network-icon";
 import { POST_TYPES, POST_TYPE_ORDER } from "@/lib/need-types";
 import type { Post, PostType } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const COMPOSER_ACTIONS = [
   { key: "photo", label: "Foto", icon: ImageIcon, type: "update" as PostType },
@@ -54,25 +37,23 @@ function greeting() {
 }
 
 export function FeedClient({ posts }: { posts: Post[] }) {
-  const { me, myNetworks, companyById, setCreateOpen } = useApp();
+  const { me, myNetworks, companyById, followingIds, setCreateOpen } = useApp();
   const [filter, setFilter] = useState<PostType | "all">("all");
 
-  const myNetworkIds = myNetworks.map((n) => n.id);
-  const followedIds = new Set<string>();
-
-  const relevanceScore = (post: Post, c: ReturnType<typeof companyById>) => {
-    let score = 0;
-    if (post.companyId === me.id) score += 100;
-    if (followedIds.has(post.companyId)) score += 80;
-    if (c?.city && me.city && c.city.toLowerCase() === me.city.toLowerCase()) score += 60;
-    if (c?.province && me.province && c.province.toLowerCase() === me.province.toLowerCase()) score += 40;
-    if (c?.industry && me.industry && c.industry.toLowerCase() === me.industry.toLowerCase()) score += 30;
-    if (c?.country && me.country && c.country.toLowerCase() === me.country.toLowerCase()) score += 20;
-    score += Math.min(post.reactions, 50) * 0.5;
-    return score;
-  };
+  const myNetworkIds = useMemo(() => myNetworks.map((network) => network.id), [myNetworks]);
 
   const filtered = useMemo(() => {
+    const relevanceScore = (post: Post) => {
+      const company = companyById(post.companyId);
+      let score = 0;
+      if (post.companyId === me.id) score += 100;
+      if (followingIds.has(post.companyId)) score += 80;
+      if (company?.city && me.city && company.city.toLowerCase() === me.city.toLowerCase()) score += 60;
+      if (company?.province && me.province && company.province.toLowerCase() === me.province.toLowerCase()) score += 40;
+      if (company?.industry && me.industry && company.industry.toLowerCase() === me.industry.toLowerCase()) score += 30;
+      if (company?.country && me.country && company.country.toLowerCase() === me.country.toLowerCase()) score += 20;
+      return score + Math.min(post.reactions, 50) * 0.5;
+    };
     let list = posts;
     list = list.filter(
       (n) => n.companyId === me.id || n.networks.some((id) => myNetworkIds.includes(id))
@@ -80,9 +61,9 @@ export function FeedClient({ posts }: { posts: Post[] }) {
     if (filter !== "all") list = list.filter((n) => n.type === filter);
     return [...list].sort(
       (a, b) =>
-        relevanceScore(b, companyById(b.companyId)) - relevanceScore(a, companyById(a.companyId))
+        relevanceScore(b) - relevanceScore(a)
     );
-  }, [posts, filter, me, myNetworkIds, companyById]);
+  }, [posts, filter, me, myNetworkIds, companyById, followingIds]);
 
   return (
     <div className="mx-auto flex w-full max-w-[1320px] px-4 pb-32 pt-5 lg:pt-8">

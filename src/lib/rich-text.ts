@@ -220,7 +220,7 @@ function cleanAttrs(tag: string, attrs: string): string {
 
 export function sanitizeHtml(input: string): string {
   // Strip HTML comments first.
-  let html = input.replace(/<!--[\s\S]*?-->/g, "");
+  const html = input.replace(/<!--[\s\S]*?-->/g, "");
   const out: string[] = [];
   let lastIndex = 0;
   const tagRe = /<(\/?)([a-zA-Z][\w-]*)\b([^>]*)>/g;

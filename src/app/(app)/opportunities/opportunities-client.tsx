@@ -111,7 +111,7 @@ export function OpportunitiesClient({
               Voeg je diensten en werkgebied toe om relevante kansen te ontvangen.
             </p>
             <button
-              onClick={() => router.push("/settings#opportunities")}
+              onClick={() => router.push("/settings/opportunities")}
               className="mt-2 rounded-full bg-yellow-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-yellow-700"
             >
               Matching instellen

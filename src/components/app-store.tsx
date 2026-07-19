@@ -2,11 +2,13 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Company, Network, PostType, Draft } from "@/lib/types";
+import type { PlatformRole } from "@/lib/auth";
 
 type Toast = { id: number; title: string; body?: string };
 
 interface AppValue {
   me: Company;
+  platformRole: PlatformRole;
   companies: Record<string, Company>;
   myNetworks: Network[];
   networks: Network[];
@@ -32,6 +34,7 @@ const AppContext = createContext<AppValue | null>(null);
 
 export function AppProvider({
   me,
+  platformRole,
   companies,
   myNetworks,
   networks,
@@ -43,6 +46,7 @@ export function AppProvider({
   children,
 }: {
   me: Company;
+  platformRole: PlatformRole;
   companies: Record<string, Company>;
   myNetworks: Network[];
   networks: Network[];
@@ -78,6 +82,7 @@ export function AppProvider({
   const value = useMemo<AppValue>(
     () => ({
       me,
+      platformRole,
       companies,
       myNetworks,
       networks,
@@ -98,7 +103,7 @@ export function AppProvider({
       toast,
       dismissToast,
     }),
-    [me, companies, myNetworks, networks, networkById, followingIds, followedNetworkIds, unreadMessages, unreadNotifications, unreadOpportunities, companyById, createOpen, createType, draftToLoad, toasts, toast, dismissToast]
+    [me, platformRole, companies, myNetworks, networks, networkById, followingIds, followedNetworkIds, unreadMessages, unreadNotifications, unreadOpportunities, companyById, createOpen, createType, draftToLoad, toasts, toast, dismissToast]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -7,7 +7,15 @@ function loadEnv() {
     const raw = readFileSync(join(process.cwd(), ".env.local"), "utf8");
     for (const line of raw.split("\n")) {
       const m = line.match(/^\s*([\w.]+)\s*=\s*(.*)\s*$/);
-      if (m) process.env[m[1]] ??= m[2].trim();
+      if (m) {
+        const rawValue = m[2].trim();
+        const value =
+          (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+          (rawValue.startsWith("'") && rawValue.endsWith("'"))
+            ? rawValue.slice(1, -1)
+            : rawValue;
+        process.env[m[1]] ??= value;
+      }
     }
   } catch {}
 }

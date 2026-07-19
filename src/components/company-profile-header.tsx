@@ -81,8 +81,8 @@ export function CompanyProfileHeader({
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "same-origin" });
       const text = await res.text();
-      let data: any;
-      try { data = JSON.parse(text); } catch {
+      let data: { ok?: boolean; error?: string; url?: string };
+      try { data = JSON.parse(text) as typeof data; } catch {
         toast("Upload mislukt", `Server reactie ongeldig (${res.status}).`);
         setSaving(false);
         return;
@@ -95,6 +95,7 @@ export function CompanyProfileHeader({
 
       if (pendingUpload.type === "logo") {
         const { updateCompanyLogo } = await import("@/lib/actions");
+        if (!data.url) throw new Error("Upload-URL ontbreekt");
         const result = await updateCompanyLogo(data.url, cropData);
         if (result.ok && result.url) {
           setLogoUrl(result.url);
@@ -106,6 +107,7 @@ export function CompanyProfileHeader({
         }
       } else {
         const { updateCompanyBanner } = await import("@/lib/actions");
+        if (!data.url) throw new Error("Upload-URL ontbreekt");
         const result = await updateCompanyBanner(data.url, cropData);
         if (result.ok && result.url) {
           setBannerUrl(result.url);

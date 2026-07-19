@@ -17,8 +17,6 @@ import { cn } from "@/lib/utils";
 import {
   convertPastedHtml,
   convertMarkdownToHtml,
-  plainTextToHtml,
-  looksLikeMarkdown,
   getCaretCharacterOffsetWithin,
   setCaretCharacterOffset,
   contentEditableToText,
@@ -105,8 +103,13 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     blockquote: false,
   });
   const [sizeOpen, setSizeOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("https://");
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(true);
   const isInternalUpdate = useRef(false);
+  const pendingLinkRange = useRef<Range | null>(null);
+  const pendingLinkText = useRef("");
 
   useEffect(() => {
     // Ensure Enter creates <p> elements consistently.
@@ -195,27 +198,64 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     [emit, reformatDisplay]
   );
 
-  const applyLink = useCallback(() => {
+  const openLinkDialog = useCallback(() => {
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const existingText = sel.toString().trim();
-    const suggested = "https://";
-    const url = typeof window !== "undefined" ? prompt("Voeg een link toe", suggested) : null;
-    if (!url) return;
+    const editor = editorRef.current;
+    if (!sel || !editor) return;
 
-    editorRef.current?.focus();
+    let range: Range;
+    if (sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      range = sel.getRangeAt(0).cloneRange();
+      pendingLinkText.current = sel.toString().trim();
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      pendingLinkText.current = "";
+    }
+
+    pendingLinkRange.current = range;
+    setLinkUrl("https://");
+    setLinkError(null);
+    setLinkOpen(true);
+  }, []);
+
+  const applyLink = useCallback(() => {
+    const rawUrl = linkUrl.trim();
+    const normalizedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(normalizedUrl);
+      if (!/^https?:$/.test(parsedUrl.protocol)) throw new Error("unsupported protocol");
+    } catch {
+      setLinkError("Vul een geldige http- of https-link in.");
+      return;
+    }
+
+    const range = pendingLinkRange.current;
+    const editor = editorRef.current;
+    if (!range || !editor) {
+      setLinkOpen(false);
+      return;
+    }
+
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    editor.focus();
+    sel.removeAllRanges();
+    sel.addRange(range);
     const a = document.createElement("a");
-    a.href = url;
+    a.href = parsedUrl.toString();
     a.target = "_blank";
     a.rel = "noopener noreferrer";
 
-    if (existingText) {
-      a.textContent = existingText;
+    if (pendingLinkText.current) {
+      a.textContent = pendingLinkText.current;
       if (!range.collapsed) range.deleteContents();
       range.insertNode(a);
     } else {
-      a.textContent = url;
+      a.textContent = rawUrl;
       range.insertNode(a);
     }
 
@@ -224,9 +264,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     newRange.collapse(true);
     sel.removeAllRanges();
     sel.addRange(newRange);
+    pendingLinkRange.current = null;
+    setLinkOpen(false);
     emit();
     requestAnimationFrame(() => reformatDisplay());
-  }, [emit, reformatDisplay]);
+  }, [emit, linkUrl, reformatDisplay]);
 
   const applySize = useCallback(
     (size: string) => {
@@ -302,7 +344,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           return;
         case "k":
           e.preventDefault();
-          applyLink();
+          openLinkDialog();
           return;
       }
     }
@@ -382,7 +424,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         <div className="mx-1 h-5 w-px bg-border" />
         <button
           type="button"
-          onClick={applyLink}
+          onClick={openLinkDialog}
           aria-label="Link toevoegen"
           title="Link toevoegen"
           className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
@@ -448,6 +490,62 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           </div>
         )}
       </div>
+
+      {linkOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="link-dialog-title"
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setLinkOpen(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-2xl">
+            <h3 id="link-dialog-title" className="text-lg font-semibold">
+              Link toevoegen
+            </h3>
+            <p className="mt-1 text-sm text-muted">Plak de volledige webpagina waarnaar je wilt verwijzen.</p>
+            <label className="mt-4 block">
+              <span className="text-sm font-medium">Webadres</span>
+              <input
+                autoFocus
+                type="url"
+                value={linkUrl}
+                onChange={(event) => {
+                  setLinkUrl(event.target.value);
+                  setLinkError(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applyLink();
+                  }
+                  if (event.key === "Escape") setLinkOpen(false);
+                }}
+                className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-border-strong"
+              />
+            </label>
+            {linkError && <p className="mt-2 text-sm text-red-500">{linkError}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLinkOpen(false)}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-foreground"
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                onClick={applyLink}
+                className="rounded-xl bg-foreground px-4 py-2 text-sm font-semibold text-background"
+              >
+                Link invoegen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

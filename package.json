@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "tsx scripts/migrate.ts",
+    "db:bootstrap-owner": "node scripts/bootstrap-owner.mjs",
     "db:seed": "tsx scripts/seed-networks.ts",
     "build:mobile": "tsx scripts/build-mobile.ts",
     "android": "tsx scripts/build-mobile.ts && npx cap run android",
