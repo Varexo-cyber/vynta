@@ -235,6 +235,50 @@ input:-webkit-autofill:active {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Shared form control used by structured product flows. */
+.input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.input::placeholder { color: var(--subtle); }
+.input:focus {
+  border-color: color-mix(in srgb, var(--foreground) 42%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.owner-action,
+.response-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  font-weight: 650;
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+.owner-action {
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  padding: 0 1rem;
+  font-size: 0.875rem;
+}
+.response-action {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  font-size: 0.75rem;
+}
+.owner-action:hover { background: var(--surface-2); }
+.response-action:hover { opacity: 0.82; }
+.owner-action:disabled,
+.response-action:disabled { opacity: 0.4; pointer-events: none; }
+
 @keyframes loading-line {
   0% { transform: scaleX(0); transform-origin: left; }
   45% { transform: scaleX(1); transform-origin: left; }

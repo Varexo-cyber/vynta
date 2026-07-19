@@ -1,49 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Clock, Zap, Package, MessageSquare, Send, X, Check, AlertCircle, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Bookmark,
+  BriefcaseBusiness,
+  CalendarDays,
+  Check,
+  Clock3,
+  Edit3,
+  ExternalLink,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Send,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
+import { CompanyAvatar, VerifiedBadge } from "@/components/ui/primitives";
 import { useApp } from "@/components/app-store";
-import { CompanyAvatar } from "@/components/ui/primitives";
-import { respondToOpportunity, closeOpportunity, triggerExpansionRound, askQuestion, selectResponse, withdrawResponse, updateOpportunityStatus } from "@/lib/opportunity-actions";
-import type { Opportunity, OpportunityResponse, OpportunityMatch, DistributionRound } from "@/lib/types";
-
-const URGENCY_LABELS: Record<string, string> = {
-  normal: "Geen haast",
-  week: "Binnen een week",
-  hours_48: "Binnen 48 uur",
-  urgent_today: "Spoed vandaag",
-};
-
-const URGENCY_COLORS: Record<string, string> = {
-  normal: "text-muted",
-  week: "text-yellow-600 dark:text-yellow-500",
-  hours_48: "text-orange-600 dark:text-orange-500",
-  urgent_today: "text-red-600 dark:text-red-500",
-};
-
-const BUDGET_LABELS: Record<string, string> = {
-  fixed: "Vast budget",
-  range: "Budgetrange",
-  per_hour: "Per uur",
-  per_unit: "Per stuk",
-  per_project: "Per project",
-  open: "Budget in overleg",
-  discuss: "Eerst bespreken",
-};
+import {
+  askQuestion,
+  deleteOpportunity,
+  markOpportunityOpened,
+  respondToOpportunity,
+  startOpportunityConversation,
+  toggleOpportunitySaved,
+  triggerExpansionRound,
+  updateOpportunityResponseStatus,
+  updateOpportunityStatus,
+  withdrawResponse,
+} from "@/lib/opportunity-actions";
+import { cn } from "@/lib/utils";
+import type { DistributionRound, Opportunity, OpportunityMatch, OpportunityResponse, ResponseStatus } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Concept",
-  active: "Actief",
-  matching: "Bezig met matchen",
+  active: "Open",
+  paused: "Gepauzeerd",
+  matching: "Wordt gematcht",
   responses_received: "Reacties ontvangen",
-  in_conversation: "In gesprek",
+  in_conversation: "In behandeling",
   party_selected: "Partij gekozen",
-  preparing_deal: "Deal in voorbereiding",
-  completed: "Afgerond",
+  preparing_deal: "In behandeling",
+  completed: "Gesloten",
   cancelled: "Geannuleerd",
   expired: "Verlopen",
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  request: "Opdracht",
+  job: "Personeel gezocht",
+  sourcing: "Leverancier gezocht",
+  offer: "Zakelijk aanbod",
+  capacity: "Capaciteit",
+  partnership: "Samenwerking",
+  urgent: "Spoedvraag",
+};
+
+const RESPONSE_STATUS: Record<ResponseStatus, string> = {
+  interested: "Nieuw",
+  question: "Vraag",
+  shortlisted: "Shortlist",
+  selected: "Geaccepteerd",
+  not_selected: "Afgewezen",
+  withdrawn: "Ingetrokken",
 };
 
 export function OpportunityDetailClient({
@@ -54,6 +83,8 @@ export function OpportunityDetailClient({
   myCompanyId,
   matches = [],
   rounds = [],
+  initiallySaved,
+  deadlineExpired,
 }: {
   opportunity: Opportunity;
   responses: OpportunityResponse[];
@@ -62,522 +93,206 @@ export function OpportunityDetailClient({
   myCompanyId: string;
   matches?: OpportunityMatch[];
   rounds?: DistributionRound[];
+  initiallySaved: boolean;
+  deadlineExpired: boolean;
 }) {
   const router = useRouter();
   const { companyById, toast } = useApp();
-  const [showRespond, setShowRespond] = useState(false);
-  const [message, setMessage] = useState("");
+  const company = companyById(opportunity.companyId);
+  const myResponse = responses.find((response) => response.respondingCompanyId === myCompanyId);
+  const [saved, setSaved] = useState(initiallySaved);
+  const [responding, setResponding] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const deadline = opportunity.responseDeadline ? new Date(opportunity.responseDeadline) : null;
+  const openForResponses = ["active", "matching", "responses_received"].includes(opportunity.status) && !deadlineExpired;
+  const location = opportunity.locationType === "remote" ? "Op afstand" : [opportunity.municipality, opportunity.province].filter(Boolean).join(", ") || opportunity.country;
+
+  useEffect(() => {
+    if (!isOwner) void markOpportunityOpened(opportunity.id);
+  }, [isOwner, opportunity.id]);
+
+  const run = async (key: string, action: () => Promise<{ ok: boolean; error?: string }>, successTitle: string, successBody = "") => {
+    setPending(key);
+    setError(null);
+    try {
+      const result = await action();
+      if (!result.ok) {
+        setError(result.error ?? "Er ging iets mis. Probeer het opnieuw.");
+        toast("Actie mislukt", result.error ?? "Probeer het opnieuw.");
+        return false;
+      }
+      toast(successTitle, successBody);
+      router.refresh();
+      return true;
+    } catch {
+      setError("De verbinding werd onderbroken. Probeer het opnieuw.");
+      toast("Actie mislukt", "Controleer je verbinding en probeer het opnieuw.");
+      return false;
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const toggleSaved = async () => {
+    setPending("save");
+    try {
+      const result = await toggleOpportunitySaved(opportunity.id);
+      if (!result.ok) return toast("Opslaan mislukt", result.error ?? "Probeer het opnieuw.");
+      setSaved(Boolean(result.saved));
+      toast(result.saved ? "Kans opgeslagen" : "Niet meer opgeslagen", "");
+    } catch {
+      toast("Opslaan mislukt", "Controleer je verbinding en probeer het opnieuw.");
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const changeStatus = (status: string, title: string) => run(`status-${status}`, () => updateOpportunityStatus(opportunity.id, status), title);
+
+  const remove = async () => {
+    if (!window.confirm("Deze kans en alle reacties definitief verwijderen? Dit kan niet ongedaan worden gemaakt.")) return;
+    const success = await run("delete", () => deleteOpportunity(opportunity.id), "Kans verwijderd");
+    if (success) router.push("/opportunities?tab=mine");
+  };
+
+  const updateResponse = (responseId: string, status: "shortlisted" | "selected" | "not_selected") => run(`response-${responseId}-${status}`, () => updateOpportunityResponseStatus(opportunity.id, responseId, status), status === "selected" ? "Reactie geaccepteerd" : status === "shortlisted" ? "Toegevoegd aan shortlist" : "Reactie afgewezen");
+
+  const startConversation = async (response: OpportunityResponse) => {
+    setPending(`message-${response.id}`);
+    try {
+      const result = await startOpportunityConversation(opportunity.id, response.respondingCompanyId);
+      if (!result.ok || !result.conversationId) return toast("Gesprek starten mislukt", result.error ?? "Probeer het opnieuw.");
+      router.push(`/messages/${result.conversationId}`);
+    } catch {
+      toast("Gesprek starten mislukt", "Controleer je verbinding en probeer het opnieuw.");
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const budget = opportunity.budgetType === "open" || opportunity.budgetType === "discuss"
+    ? "Budget in overleg"
+    : opportunity.budgetMin != null
+      ? `€ ${new Intl.NumberFormat("nl-NL").format(opportunity.budgetMin)}${opportunity.budgetMax != null ? ` – € ${new Intl.NumberFormat("nl-NL").format(opportunity.budgetMax)}` : ""}`
+      : "Prijs op aanvraag";
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-9 xl:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <button type="button" onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-foreground focus-ring"><ArrowLeft size={16} /> Terug naar kansen</button>
+        <div className="flex items-center gap-2">
+          {!isOwner && <button type="button" onClick={() => void toggleSaved()} disabled={pending === "save"} className={cn("inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors", saved ? "border-foreground bg-foreground text-background" : "border-border hover:bg-surface")} aria-pressed={saved}><Bookmark size={15} fill={saved ? "currentColor" : "none"} />{saved ? "Opgeslagen" : "Opslaan"}</button>}
+          {isOwner && <Link href={`/opportunities/${opportunity.id}/edit`} className="inline-flex h-10 items-center gap-2 rounded-full border border-border px-4 text-sm font-semibold hover:bg-surface"><Edit3 size={15} /> Bewerken</Link>}
+        </div>
+      </div>
+
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
+          <article className="rounded-xl border border-border bg-surface p-5 sm:p-7">
+            <div className="flex items-start gap-3">
+              <CompanyAvatar name={company?.name ?? "Onbekend bedrijf"} color={company?.logoColor ?? "#171717"} logoUrl={company?.logoUrl} size={46} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5"><span className="truncate text-sm font-semibold">{company?.name ?? "Onbekend bedrijf"}</span>{company?.verified && <VerifiedBadge size={15} />}</div>
+                <p className="mt-0.5 text-xs text-muted">Geplaatst {new Date(opportunity.publishedAt ?? opportunity.createdAt).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}</p>
+              </div>
+              <span className={cn("rounded-full border px-3 py-1 text-xs font-semibold", openForResponses ? "border-green-700/20 bg-green-600/10 text-green-700 dark:text-green-400" : "border-border text-muted")}>{deadlineExpired && !isOwner ? "Reactietermijn verlopen" : STATUS_LABELS[opportunity.status] ?? opportunity.status}</span>
+            </div>
+
+            <div className="mt-7">
+              <span className="rounded-md bg-surface-2 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{TYPE_LABELS[opportunity.opportunityType] ?? "Zakelijke kans"}</span>
+              <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-[-0.04em] sm:text-3xl">{opportunity.title}</h1>
+              {opportunity.description && <p className="mt-5 whitespace-pre-wrap text-[15px] leading-7 text-muted">{opportunity.description}</p>}
+            </div>
+
+            <dl className="mt-7 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
+              <Detail label="Sector" value={categoryPath || "Niet gespecificeerd"} icon={<BriefcaseBusiness size={16} />} />
+              <Detail label="Locatie" value={location} icon={<MapPin size={16} />} />
+              <Detail label="Budget" value={budget} icon={<MoreHorizontal size={16} />} />
+              <Detail label="Omvang" value={opportunity.quantity ? `${opportunity.quantity}${opportunity.unit ? ` ${opportunity.unit}` : ""}` : "Niet gespecificeerd"} icon={<Users size={16} />} />
+              <Detail label="Start" value={opportunity.startDate ? new Date(opportunity.startDate).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : "In overleg"} icon={<CalendarDays size={16} />} />
+              <Detail label="Reageren vóór" value={deadline ? deadline.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }) : "Geen vaste deadline"} icon={<Clock3 size={16} />} />
+            </dl>
+
+            <div className="mt-6 flex items-start gap-2 border-l-2 border-border-strong pl-3 text-xs leading-5 text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" /><p>Deel contactgegevens en vertrouwelijke documenten pas in een privégesprek nadat je hebt vastgesteld dat een bedrijf past.</p></div>
+          </article>
+
+          {isOwner ? (
+            <OwnerResponses responses={responses} pending={pending} onStatus={updateResponse} onMessage={startConversation} companyById={companyById} />
+          ) : (
+            <ResponseArea opportunity={opportunity} myResponse={myResponse} open={openForResponses} responding={responding} setResponding={setResponding} asking={asking} setAsking={setAsking} pending={pending} setPending={setPending} error={error} setError={setError} onRefresh={() => router.refresh()} toast={toast} />
+          )}
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start">
+          {isOwner ? (
+            <div className="rounded-xl border border-border bg-surface p-5">
+              <h2 className="text-base font-semibold">Beheer deze kans</h2>
+              <p className="mt-1 text-sm leading-6 text-muted">Status: <strong className="font-semibold text-foreground">{STATUS_LABELS[opportunity.status] ?? opportunity.status}</strong></p>
+              <div className="mt-4 grid grid-cols-2 gap-2 border-y border-border py-4 text-center"><Stat value={responses.filter((response) => response.status !== "question").length} label="Reacties" /><Stat value={matches.length} label="Matches" /></div>
+              <div className="mt-4 grid gap-2">
+                <Link href={`/opportunities/${opportunity.id}/edit`} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-foreground px-4 text-sm font-semibold text-background"><Edit3 size={15} /> Bewerken</Link>
+                {["active", "matching", "responses_received", "in_conversation"].includes(opportunity.status) && <button type="button" onClick={() => void changeStatus("paused", "Kans gepauzeerd")} disabled={pending === "status-paused"} className="owner-action"><Pause size={15} /> Pauzeren</button>}
+                {["paused", "expired", "cancelled"].includes(opportunity.status) && <button type="button" onClick={() => void changeStatus("active", "Kans opnieuw gepubliceerd")} disabled={pending === "status-active"} className="owner-action"><Play size={15} /> Opnieuw publiceren</button>}
+                {!['completed', 'cancelled'].includes(opportunity.status) && <button type="button" onClick={() => void changeStatus("completed", "Kans gesloten")} disabled={pending === "status-completed"} className="owner-action"><Check size={15} /> Markeer als afgehandeld</button>}
+                <button type="button" onClick={() => void remove()} disabled={pending === "delete"} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-300/50 text-sm font-semibold text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/20"><Trash2 size={15} /> Verwijderen</button>
+              </div>
+              {(["active", "matching"].includes(opportunity.status)) && <button type="button" onClick={() => void run("expand", () => triggerExpansionRound(opportunity.id), "Nieuwe matchronde gestart")} disabled={pending === "expand"} className="mt-4 inline-flex w-full items-center justify-center gap-2 border-t border-border pt-4 text-xs font-semibold text-muted hover:text-foreground">{pending === "expand" ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />} Zoek meer matches ({rounds.length} rondes)</button>}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-surface p-5">
+              <h2 className="text-base font-semibold">Past deze kans?</h2>
+              <p className="mt-2 text-sm leading-6 text-muted">Reageer met een korte, concrete toelichting. Prijs en beschikbaarheid zijn optioneel.</p>
+              {openForResponses && !myResponse && <button type="button" onClick={() => setResponding(true)} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-brand-fg"><MessageSquare size={16} /> Reageren</button>}
+              {!openForResponses && <p className="mt-4 rounded-lg bg-surface-2 p-3 text-sm text-muted">Deze kans staat niet meer open voor reacties.</p>}
+              {myResponse && <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-green-700 dark:text-green-400"><Check size={16} /> Je hebt gereageerd</p>}
+            </div>
+          )}
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function OwnerResponses({ responses, pending, onStatus, onMessage, companyById }: { responses: OpportunityResponse[]; pending: string | null; onStatus: (id: string, status: "shortlisted" | "selected" | "not_selected") => Promise<boolean>; onMessage: (response: OpportunityResponse) => Promise<void>; companyById: ReturnType<typeof useApp>["companyById"] }) {
+  return <section className="mt-7" aria-labelledby="responses-title"><div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Privé</p><h2 id="responses-title" className="mt-1 text-xl font-semibold">Reacties en vragen</h2></div><span className="text-sm text-muted">{responses.length}</span></div>{responses.length ? <div className="space-y-3">{responses.map((response) => { const company = companyById(response.respondingCompanyId); const actionable = response.status !== "question"; return <article key={response.id} className="rounded-xl border border-border bg-surface p-4 sm:p-5"><div className="flex items-start gap-3"><CompanyAvatar name={company?.name ?? "Onbekend bedrijf"} color={company?.logoColor ?? "#171717"} logoUrl={company?.logoUrl} size={40} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-1.5"><span className="font-semibold">{company?.name ?? "Onbekend bedrijf"}</span>{company?.verified && <VerifiedBadge size={15} />}<span className="ml-auto rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold">{RESPONSE_STATUS[response.status]}</span></div><p className="mt-1 text-xs text-muted">{company?.city || company?.province || "Nederland"} · {new Date(response.createdAt).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}</p><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted">{response.message}</p><div className="mt-3 flex flex-wrap gap-3 text-xs font-medium">{response.availableFrom && <span>Beschikbaar vanaf {new Date(response.availableFrom).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}</span>}{response.priceMin != null && <span>Indicatie € {new Intl.NumberFormat("nl-NL").format(response.priceMin)}{response.priceMax != null ? ` – € ${new Intl.NumberFormat("nl-NL").format(response.priceMax)}` : ""}</span>}</div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => void onMessage(response)} disabled={pending === `message-${response.id}`} className="response-action bg-foreground text-background"><MessageSquare size={14} /> Bericht</button>{actionable && response.status !== "selected" && <button type="button" onClick={() => void onStatus(response.id, "shortlisted")} disabled={pending === `response-${response.id}-shortlisted`} className="response-action border border-border">Shortlist</button>}{actionable && response.status !== "selected" && <button type="button" onClick={() => void onStatus(response.id, "selected")} disabled={pending === `response-${response.id}-selected`} className="response-action border border-green-700/30 text-green-700 dark:text-green-400"><Check size={14} /> Accepteren</button>}{actionable && response.status !== "not_selected" && response.status !== "selected" && <button type="button" onClick={() => void onStatus(response.id, "not_selected")} disabled={pending === `response-${response.id}-not_selected`} className="response-action border border-border text-muted"><X size={14} /> Afwijzen</button>}</div></div></div></article>; })}</div> : <div className="rounded-xl border border-dashed border-border py-12 text-center"><Users size={26} className="mx-auto text-subtle" /><p className="mt-3 text-sm font-semibold">Nog geen reacties</p><p className="mt-1 text-sm text-muted">Je ziet reacties hier zodra een bedrijf interesse toont.</p></div>}</section>;
+}
+
+function ResponseArea({ opportunity, myResponse, open, responding, setResponding, asking, setAsking, pending, setPending, error, setError, onRefresh, toast }: { opportunity: Opportunity; myResponse?: OpportunityResponse; open: boolean; responding: boolean; setResponding: (value: boolean) => void; asking: boolean; setAsking: (value: boolean) => void; pending: string | null; setPending: (value: string | null) => void; error: string | null; setError: (value: string | null) => void; onRefresh: () => void; toast: (title: string, body: string) => void }) {
+  const [message, setMessage] = useState(myResponse?.message ?? "");
   const [priceType, setPriceType] = useState("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
   const [availableFrom, setAvailableFrom] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [closing, setClosing] = useState(false);
-  const [expanding, setExpanding] = useState(false);
-  const [showQuestion, setShowQuestion] = useState(false);
   const [question, setQuestion] = useState("");
 
-  const company = companyById(opportunity.companyId);
-  const myResponse = responses.find((r) => r.respondingCompanyId === myCompanyId);
-
-  const handleRespond = async () => {
-    if (!message.trim()) {
-      setError("Bericht is verplicht.");
-      return;
-    }
-    setSending(true);
-    setError(null);
-    const result = await respondToOpportunity(opportunity.id, {
-      message: message.trim(),
-      priceType: priceType || undefined,
-      priceMin: priceMin ? Number(priceMin) : undefined,
-      priceMax: priceMax ? Number(priceMax) : undefined,
-      availableFrom: availableFrom || undefined,
-    });
-    setSending(false);
-    if (result.ok) {
-      toast("Reactie verzonden!", "De aanvrager ontvangt je bericht.");
-      setShowRespond(false);
-      setMessage("");
-      router.refresh();
-    } else {
-      setError(result.error ?? "Er ging iets mis.");
-    }
+  const submitResponse = async () => {
+    setPending("respond"); setError(null);
+    try {
+      const result = await respondToOpportunity(opportunity.id, { message, priceType: priceType || undefined, priceMin: priceMin ? Number(priceMin) : undefined, priceMax: priceMax ? Number(priceMax) : undefined, availableFrom: availableFrom || undefined });
+      if (!result.ok) return setError(result.error ?? "Je reactie kon niet worden verzonden.");
+      toast("Reactie verzonden", "De plaatser ziet je reactie in het privéoverzicht."); setResponding(false); onRefresh();
+    } catch { setError("De verbinding werd onderbroken. Je tekst staat nog klaar."); }
+    finally { setPending(null); }
   };
-
-  const handleClose = async (outcome: "via_vynta" | "outside_vynta" | "not_yet" | "cancel") => {
-    setClosing(true);
-    const result = await closeOpportunity(opportunity.id, outcome);
-    setClosing(false);
-    if (result.ok) {
-      toast(outcome === "cancel" ? "Aanvraag geannuleerd" : "Aanvraag afgesloten", "");
-      router.refresh();
-    } else {
-      toast("Fout", result.error ?? "Er ging iets mis.");
-    }
+  const submitQuestion = async () => {
+    setPending("question"); setError(null);
+    try { const result = await askQuestion(opportunity.id, question); if (!result.ok) return setError(result.error ?? "Je vraag kon niet worden verzonden."); toast("Vraag verzonden", "De plaatser kan nu reageren."); setAsking(false); onRefresh(); }
+    catch { setError("De verbinding werd onderbroken. Je vraag staat nog klaar."); }
+    finally { setPending(null); }
   };
+  const withdraw = async () => { setPending("withdraw"); try { const result = await withdrawResponse(opportunity.id); if (!result.ok) return toast("Intrekken mislukt", result.error ?? "Probeer het opnieuw."); toast("Reactie ingetrokken", ""); onRefresh(); } catch { toast("Intrekken mislukt", "Controleer je verbinding en probeer het opnieuw."); } finally { setPending(null); } };
 
-  const handleExpand = async () => {
-    setExpanding(true);
-    const result = await triggerExpansionRound(opportunity.id);
-    setExpanding(false);
-    if (result.ok) {
-      toast("Expansieronde gestart", `${result.matched ?? 0} nieuwe bedrijven gevonden.`);
-      router.refresh();
-    } else {
-      toast("Fout", result.error ?? "Er ging iets mis.");
-    }
-  };
-
-  const handleAskQuestion = async () => {
-    if (!question.trim()) return;
-    const result = await askQuestion(opportunity.id, question.trim());
-    if (result.ok) {
-      toast("Vraag verzonden", "");
-      setShowQuestion(false);
-      setQuestion("");
-      router.refresh();
-    } else {
-      toast("Fout", result.error ?? "Er ging iets mis.");
-    }
-  };
-
-  const handleSelectResponse = async (responseId: string) => {
-    const result = await selectResponse(opportunity.id, responseId);
-    if (result.ok) {
-      toast("Partij gekozen", "De aanvraag is gemarkeerd als in behandeling.");
-      router.refresh();
-    } else {
-      toast("Fout", result.error ?? "Er ging iets mis.");
-    }
-  };
-
-  const handleWithdraw = async () => {
-    const result = await withdrawResponse(opportunity.id);
-    if (result.ok) {
-      toast("Reactie ingetrokken", "");
-      router.refresh();
-    } else {
-      toast("Fout", result.error ?? "Er ging iets mis.");
-    }
-  };
-
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
-      {/* Back */}
-      <button
-        onClick={() => router.push("/opportunities")}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-foreground"
-      >
-        <ArrowLeft size={16} /> Terug naar kansen
-      </button>
-
-      {/* Company header */}
-      <div className="mb-5 flex items-center gap-3">
-        <CompanyAvatar
-          name={company?.name ?? "Onbekend"}
-          color={company?.logoColor ?? "#6d28d9"}
-          logoUrl={company?.logoUrl}
-          size={44}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{company?.name ?? "Onbekend bedrijf"}</p>
-          <p className="truncate text-xs text-muted">
-            {company?.verified && "✓ Geverifieerd · "}
-            {new Date(opportunity.createdAt).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}
-          </p>
-        </div>
-        <span className={cn(
-          "shrink-0 rounded-full px-3 py-1 text-xs font-semibold",
-          opportunity.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-500" : "bg-surface-2 text-muted"
-        )}>
-          {STATUS_LABELS[opportunity.status] ?? opportunity.status}
-        </span>
-      </div>
-
-      {/* Title + description */}
-      <h1 className="mb-2 text-xl font-bold leading-snug">{opportunity.title}</h1>
-      {opportunity.description && (
-        <p className="mb-4 text-[15px] leading-relaxed text-muted">{opportunity.description}</p>
-      )}
-
-      {/* Meta chips */}
-      <div className="mb-5 flex flex-wrap gap-2">
-        {categoryPath && (
-          <MetaChip icon={<Package size={13} />} label={categoryPath} />
-        )}
-        {opportunity.municipality && (
-          <MetaChip icon={<MapPin size={13} />} label={opportunity.municipality} />
-        )}
-        <MetaChip icon={<Zap size={13} />} label={URGENCY_LABELS[opportunity.urgency]} className={URGENCY_COLORS[opportunity.urgency]} />
-        {opportunity.quantity && (
-          <MetaChip icon={<Package size={13} />} label={`${opportunity.quantity}${opportunity.unit ? ` ${opportunity.unit}` : ""}`} />
-        )}
-        {opportunity.startDate && (
-          <MetaChip icon={<Clock size={13} />} label={`Start ${new Date(opportunity.startDate).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`} />
-        )}
-        <MetaChip icon={<Zap size={13} />} label={BUDGET_LABELS[opportunity.budgetType]} />
-        {opportunity.budgetMin != null && (
-          <MetaChip icon={<Zap size={13} />} label={`€${opportunity.budgetMin}${opportunity.budgetMax != null ? `–${opportunity.budgetMax}` : ""}`} />
-        )}
-      </div>
-
-      {/* Owner: responses section */}
-      {isOwner && responses.length > 0 && (
-        <div className="mb-5">
-          <h2 className="mb-3 text-sm font-bold">{responses.length} reactie{responses.length > 1 ? "s" : ""}</h2>
-          <div className="space-y-2">
-            {responses.map((resp) => {
-              const respCompany = companyById(resp.respondingCompanyId);
-              return (
-                <div key={resp.id} className="rounded-xl border border-border bg-surface p-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <CompanyAvatar
-                      name={respCompany?.name ?? "?"}
-                      color={respCompany?.logoColor ?? "#6d28d9"}
-                      logoUrl={respCompany?.logoUrl}
-                      size={28}
-                    />
-                    <span className="text-sm font-semibold">{respCompany?.name ?? "Onbekend"}</span>
-                    <span className="ml-auto text-xs text-muted">
-                      {new Date(resp.createdAt).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted">{resp.message}</p>
-                  {resp.priceMin != null && (
-                    <p className="mt-1.5 text-xs font-medium">
-                      Prijs: €{resp.priceMin}{resp.priceMax != null ? `–${resp.priceMax}` : ""} {resp.priceType}
-                    </p>
-                  )}
-                  {resp.status === "selected" && (
-                    <span className="mt-2 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-500">
-                      ✓ Geselecteerd
-                    </span>
-                  )}
-                  {resp.status === "question" && (
-                    <span className="mt-2 inline-block rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/30 dark:text-blue-500">
-                      Vraag
-                    </span>
-                  )}
-                  {(opportunity.status === "active" || opportunity.status === "matching" || opportunity.status === "responses_received") && resp.status !== "selected" && resp.status !== "question" && (
-                    <button
-                      onClick={() => handleSelectResponse(resp.id)}
-                      className="mt-2 rounded-full border border-border px-3 py-1 text-xs font-semibold transition-colors hover:bg-surface-2"
-                    >
-                      Selecteer als partij
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Close actions */}
-          {opportunity.status === "active" && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                onClick={() => handleClose("via_vynta")}
-                disabled={closing}
-                className="rounded-full bg-green-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-green-700"
-              >
-                <Check size={12} className="mr-1 inline" /> Oplossing via Vynta
-              </button>
-              <button
-                onClick={() => handleClose("outside_vynta")}
-                disabled={closing}
-                className="rounded-full border border-border px-4 py-2 text-xs font-semibold transition-colors hover:bg-surface-2"
-              >
-                Buiten Vynta opgelost
-              </button>
-              <button
-                onClick={() => handleClose("cancel")}
-                disabled={closing}
-                className="rounded-full border border-border px-4 py-2 text-xs font-semibold text-muted transition-colors hover:bg-surface-2"
-              >
-                Annuleren
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Owner: matches overview */}
-      {isOwner && (opportunity.status === "active" || opportunity.status === "matching") && (
-        <div className="mb-5 rounded-2xl border border-border bg-surface p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold">Matching</h2>
-            {rounds.length > 0 && (
-              <span className="text-xs text-muted">
-                {rounds.length} ronde{rounds.length > 1 ? "s" : ""} · {matches.length} match{matches.length !== 1 ? "es" : ""}
-              </span>
-            )}
-          </div>
-
-          {matches.length === 0 ? (
-            <p className="text-sm text-muted">
-              {rounds.length === 0
-                ? "Matching is gestart. Het kan even duren voordat matches verschijnen."
-                : "Nog geen matches gevonden. Probeer een expansieronde."}
-            </p>
-          ) : (
-            <>
-              <div className="mb-3 space-y-1.5">
-                {matches.slice(0, 5).map((m) => {
-                  const matchCompany = companyById(m.companyId);
-                  return (
-                    <div key={m.id} className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2">
-                      <CompanyAvatar
-                        name={matchCompany?.name ?? "?"}
-                        color={matchCompany?.logoColor ?? "#6d28d9"}
-                        logoUrl={matchCompany?.logoUrl}
-                        size={24}
-                      />
-                      <span className="flex-1 truncate text-xs font-medium">{matchCompany?.name ?? "Onbekend"}</span>
-                      <span className={cn(
-                        "text-xs font-bold",
-                        m.totalScore >= 70 ? "text-green-600 dark:text-green-500" : m.totalScore >= 50 ? "text-yellow-600 dark:text-yellow-500" : "text-muted"
-                      )}>
-                        {m.totalScore}%
-                      </span>
-                      <span className="text-[10px] text-muted">{m.status}</span>
-                    </div>
-                  );
-                })}
-                {matches.length > 5 && (
-                  <p className="text-xs text-muted">+{matches.length - 5} meer</p>
-                )}
-              </div>
-              {matches[0].reasons.length > 0 && (
-                <div className="mb-3 rounded-lg bg-surface-2 p-2">
-                  <p className="text-[10px] font-semibold uppercase text-muted">Top redenen</p>
-                  <p className="text-xs text-muted">{matches[0].reasons.join(" · ")}</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Expansion round button */}
-          {opportunity.status === "active" || opportunity.status === "matching" ? (
-            <button
-              onClick={handleExpand}
-              disabled={expanding}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-surface-2 disabled:opacity-50"
-            >
-              {expanding ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-              {expanding ? "Bezig..." : "Expansieronde starten"}
-            </button>
-          ) : null}
-        </div>
-      )}
-
-      {/* Non-owner: respond section */}
-      {!isOwner && opportunity.status === "active" && (
-        <div className="mt-6 space-y-3">
-          {myResponse ? (
-            <div className="rounded-2xl border border-green-300/50 bg-green-50 p-4 dark:border-green-700/30 dark:bg-green-950/20">
-              <div className="flex items-center gap-2 text-sm font-semibold text-green-700 dark:text-green-500">
-                <Check size={16} /> Je hebt gereageerd
-              </div>
-              <p className="mt-1.5 text-sm text-muted">{myResponse.message}</p>
-              <button
-                onClick={handleWithdraw}
-                className="mt-2 text-xs font-medium text-muted underline hover:text-foreground"
-              >
-                Reactie intrekken
-              </button>
-            </div>
-          ) : showRespond ? (
-            <RespondForm
-              message={message}
-              setMessage={setMessage}
-              priceType={priceType}
-              setPriceType={setPriceType}
-              priceMin={priceMin}
-              setPriceMin={setPriceMin}
-              priceMax={priceMax}
-              setPriceMax={setPriceMax}
-              availableFrom={availableFrom}
-              setAvailableFrom={setAvailableFrom}
-              onSend={handleRespond}
-              onCancel={() => { setShowRespond(false); setError(null); }}
-              sending={sending}
-              error={error}
-            />
-          ) : (
-            <>
-              <button
-                onClick={() => setShowRespond(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-              >
-                <MessageSquare size={18} /> Reageer op deze aanvraag
-              </button>
-              {showQuestion ? (
-                <div className="rounded-2xl border border-border bg-surface p-4">
-                  <label className="mb-1.5 block text-sm font-semibold">Stel een vraag</label>
-                  <textarea
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Wat wil je weten voordat je reageert?"
-                    rows={3}
-                    className="mb-3 w-full resize-none rounded-xl border border-border bg-surface p-3 text-sm outline-none focus:border-foreground/30"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleAskQuestion}
-                      disabled={!question.trim()}
-                      className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background disabled:opacity-50"
-                    >
-                      Verstuur vraag
-                    </button>
-                    <button
-                      onClick={() => { setShowQuestion(false); setQuestion(""); }}
-                      className="rounded-full border border-border px-4 py-2 text-xs font-semibold"
-                    >
-                      Annuleren
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowQuestion(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-3 text-sm font-semibold transition-colors hover:bg-surface-2"
-                >
-                  Vraag stellen
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Non-owner, not active */}
-      {!isOwner && opportunity.status !== "active" && (
-        <div className="mt-6 rounded-2xl border border-border bg-surface-2 p-4 text-center text-sm text-muted">
-          Deze aanvraag is niet meer actief.
-        </div>
-      )}
-    </div>
-  );
+  if (myResponse) return <section className="mt-7 rounded-xl border border-green-700/20 bg-green-600/5 p-5"><p className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 dark:text-green-400"><Check size={16} /> Reactie verzonden</p><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted">{myResponse.message}</p><div className="mt-4 flex gap-3"><button type="button" onClick={() => setResponding(true)} className="text-xs font-semibold underline underline-offset-4">Reactie aanpassen</button><button type="button" onClick={() => void withdraw()} disabled={pending === "withdraw"} className="text-xs font-semibold text-muted underline underline-offset-4">Intrekken</button></div>{responding && <ResponseForm message={message} setMessage={setMessage} priceType={priceType} setPriceType={setPriceType} priceMin={priceMin} setPriceMin={setPriceMin} priceMax={priceMax} setPriceMax={setPriceMax} availableFrom={availableFrom} setAvailableFrom={setAvailableFrom} pending={pending === "respond"} error={error} onSubmit={submitResponse} onCancel={() => setResponding(false)} />}</section>;
+  if (!open) return null;
+  return <section className="mt-7"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Interesse</p><h2 className="mt-1 text-xl font-semibold">Reageer op deze kans</h2></div>{!responding && <button type="button" onClick={() => setResponding(true)} className="inline-flex h-10 items-center gap-2 rounded-full bg-foreground px-4 text-sm font-semibold text-background"><MessageSquare size={15} /> Reageren</button>}</div>{responding && <ResponseForm message={message} setMessage={setMessage} priceType={priceType} setPriceType={setPriceType} priceMin={priceMin} setPriceMin={setPriceMin} priceMax={priceMax} setPriceMax={setPriceMax} availableFrom={availableFrom} setAvailableFrom={setAvailableFrom} pending={pending === "respond"} error={error} onSubmit={submitResponse} onCancel={() => setResponding(false)} />}{!responding && (asking ? <div className="mt-4 rounded-xl border border-border bg-surface p-4"><label className="grid gap-2 text-sm font-semibold">Vraag aan de plaatser<textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={4} className="input resize-y font-normal" placeholder="Welke informatie heb je nodig om te kunnen reageren?" /></label>{error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}<div className="mt-3 flex gap-2"><button type="button" onClick={() => void submitQuestion()} disabled={pending === "question" || question.trim().length < 10} className="response-action bg-foreground text-background"><Send size={14} /> Versturen</button><button type="button" onClick={() => setAsking(false)} className="response-action border border-border">Annuleren</button></div></div> : <button type="button" onClick={() => setAsking(true)} className="mt-4 text-sm font-semibold text-muted underline decoration-border-strong underline-offset-4 hover:text-foreground">Eerst een vraag stellen</button>)}</section>;
 }
 
-function MetaChip({ icon, label, className }: { icon: React.ReactNode; label: string; className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs font-medium", className)}>
-      {icon} {label}
-    </span>
-  );
+function ResponseForm({ message, setMessage, priceType, setPriceType, priceMin, setPriceMin, priceMax, setPriceMax, availableFrom, setAvailableFrom, pending, error, onSubmit, onCancel }: { message: string; setMessage: (value: string) => void; priceType: string; setPriceType: (value: string) => void; priceMin: string; setPriceMin: (value: string) => void; priceMax: string; setPriceMax: (value: string) => void; availableFrom: string; setAvailableFrom: (value: string) => void; pending: boolean; error: string | null; onSubmit: () => Promise<void>; onCancel: () => void }) {
+  return <div className="mt-4 rounded-xl border border-border bg-surface p-4 sm:p-5"><label className="grid gap-2 text-sm font-semibold">Korte toelichting<textarea value={message} onChange={(event) => setMessage(event.target.value.slice(0, 3000))} rows={6} className="input resize-y font-normal leading-6" placeholder="Waarom past jouw bedrijf bij deze kans? Noem relevante ervaring en je voorgestelde aanpak." /></label><div className="mt-4 grid gap-3 sm:grid-cols-3"><label className="grid gap-1.5 text-xs font-semibold">Prijsindicatie<select value={priceType} onChange={(event) => setPriceType(event.target.value)} className="input"><option value="">Niet opgeven</option><option value="fixed">Vaste prijs</option><option value="range">Prijsrange</option><option value="per_hour">Per uur</option><option value="per_project">Per project</option></select></label>{priceType && <label className="grid gap-1.5 text-xs font-semibold">{priceType === "range" ? "Vanaf" : "Bedrag"}<input type="number" min="0" value={priceMin} onChange={(event) => setPriceMin(event.target.value)} className="input" placeholder="€" /></label>}{priceType === "range" && <label className="grid gap-1.5 text-xs font-semibold">Tot<input type="number" min={priceMin || "0"} value={priceMax} onChange={(event) => setPriceMax(event.target.value)} className="input" placeholder="€" /></label>}<label className="grid gap-1.5 text-xs font-semibold">Beschikbaar vanaf<input type="date" value={availableFrom} onChange={(event) => setAvailableFrom(event.target.value)} className="input" /></label></div>{error && <div className="mt-3 flex gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-700" role="alert"><AlertCircle size={14} />{error}</div>}<div className="mt-4 flex gap-2"><button type="button" onClick={() => void onSubmit()} disabled={pending || message.trim().length < 20} className="inline-flex h-10 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-brand-fg disabled:opacity-40">{pending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Verstuur reactie</button><button type="button" onClick={onCancel} className="inline-flex h-10 items-center rounded-full border border-border px-4 text-sm font-semibold">Annuleren</button></div></div>;
 }
 
-function RespondForm({
-  message,
-  setMessage,
-  priceType,
-  setPriceType,
-  priceMin,
-  setPriceMin,
-  priceMax,
-  setPriceMax,
-  availableFrom,
-  setAvailableFrom,
-  onSend,
-  onCancel,
-  sending,
-  error,
-}: {
-  message: string;
-  setMessage: (v: string) => void;
-  priceType: string;
-  setPriceType: (v: string) => void;
-  priceMin: string;
-  setPriceMin: (v: string) => void;
-  priceMax: string;
-  setPriceMax: (v: string) => void;
-  availableFrom: string;
-  setAvailableFrom: (v: string) => void;
-  onSend: () => void;
-  onCancel: () => void;
-  sending: boolean;
-  error: string | null;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
-      <h3 className="mb-3 text-sm font-bold">Reageer op deze aanvraag</h3>
-
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Vertel kort waarom jij de juiste partij bent..."
-        rows={4}
-        className="mb-3 w-full resize-none rounded-xl border border-border bg-surface p-3 text-sm outline-none transition-colors focus:border-foreground/30"
-        autoFocus
-      />
-
-      {/* Optional price */}
-      <div className="mb-3 flex flex-wrap gap-2">
-        <select
-          value={priceType}
-          onChange={(e) => setPriceType(e.target.value)}
-          className="rounded-lg border border-border bg-surface px-2 py-2 text-sm outline-none"
-        >
-          <option value="">Geen prijsopgave</option>
-          <option value="fixed">Vaste prijs</option>
-          <option value="range">Prijsrange</option>
-          <option value="per_hour">Per uur</option>
-          <option value="per_project">Per project</option>
-        </select>
-        {priceType && (
-          <>
-            <input
-              type="number"
-              value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
-              placeholder="Min €"
-              className="w-24 rounded-lg border border-border bg-surface px-2 py-2 text-sm outline-none"
-            />
-            {priceType === "range" && (
-              <input
-                type="number"
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
-                placeholder="Max €"
-                className="w-24 rounded-lg border border-border bg-surface px-2 py-2 text-sm outline-none"
-              />
-            )}
-          </>
-        )}
-        <input
-          type="date"
-          value={availableFrom}
-          onChange={(e) => setAvailableFrom(e.target.value)}
-          className="rounded-lg border border-border bg-surface px-2 py-2 text-sm outline-none"
-          title="Beschikbaar vanaf"
-        />
-      </div>
-
-      {error && (
-        <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-300/50 bg-red-50 p-2.5 text-xs text-red-700 dark:border-red-700/30 dark:bg-red-950/20 dark:text-red-400">
-          <AlertCircle size={14} className="shrink-0" /> {error}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          onClick={onSend}
-          disabled={sending || !message.trim()}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-foreground py-2.5 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-          {sending ? "Verzenden..." : "Verstuur reactie"}
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded-full border border-border px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-surface-2"
-        >
-          Annuleren
-        </button>
-      </div>
-    </div>
-  );
-}
+function Detail({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) { return <div className="flex gap-3 bg-surface p-4"><span className="mt-0.5 text-muted">{icon}</span><div><dt className="text-xs font-medium text-muted">{label}</dt><dd className="mt-1 text-sm font-semibold">{value}</dd></div></div>; }
+function Stat({ value, label }: { value: number; label: string }) { return <div><p className="text-xl font-semibold">{value}</p><p className="text-xs text-muted">{label}</p></div>; }

@@ -167,12 +167,207 @@ export async function getOpportunityById(id: string): Promise<Opportunity | null
   return rows.length ? mapOpportunity(rows[0]) : null;
 }
 
+export async function getOpportunityAccess(opportunityId: string, companyId: string): Promise<{
+  exists: boolean;
+  isOwner: boolean;
+  canView: boolean;
+  saved: boolean;
+  deadlineExpired: boolean;
+  matchId?: string;
+}> {
+  const rows = await sql`
+    SELECT o.company_id, o.status, o.visibility_mode,
+           match.id AS match_id,
+           (saved.id IS NOT NULL) AS saved,
+           (o.response_deadline IS NOT NULL AND o.response_deadline < now()) AS deadline_expired
+    FROM opportunities o
+    LEFT JOIN opportunity_matches match ON match.opportunity_id = o.id AND match.company_id = ${companyId}
+    LEFT JOIN opportunity_feedback saved ON saved.opportunity_id = o.id AND saved.company_id = ${companyId} AND saved.feedback_type = 'saved'
+    WHERE o.id = ${opportunityId}
+    LIMIT 1
+  `;
+  if (!rows.length) return { exists: false, isOwner: false, canView: false, saved: false, deadlineExpired: false };
+  const row = rows[0];
+  const isOwner = row.company_id === companyId;
+  const isPrivateDraft = row.status === "draft" || row.status === "paused";
+  const canView = isOwner || (!isPrivateDraft && (row.visibility_mode === "public" || row.visibility_mode === "after_interest" || Boolean(row.match_id)));
+  return {
+    exists: true,
+    isOwner,
+    canView,
+    saved: Boolean(row.saved),
+    deadlineExpired: Boolean(row.deadline_expired),
+    matchId: (row.match_id as string) ?? undefined,
+  };
+}
+
 export async function getOpportunitiesByCompany(companyId: string): Promise<Opportunity[]> {
   const rows = await sql`SELECT * FROM opportunities WHERE company_id = ${companyId} ORDER BY created_at DESC`;
   return rows.map(mapOpportunity);
 }
 
+export type OpportunityListTab = "for_you" | "new" | "nearby" | "sector" | "saved" | "mine";
+export type OpportunityListSort = "relevant" | "newest" | "deadline" | "budget_high" | "nearby";
+
+export interface OpportunityListFilters {
+  tab?: OpportunityListTab;
+  query?: string;
+  type?: OpportunityType | "";
+  location?: string;
+  sector?: string;
+  date?: "" | "today" | "week" | "month";
+  status?: OpportunityStatus | "closed" | "";
+  sort?: OpportunityListSort;
+  page?: number;
+  limit?: number;
+}
+
+export interface OpportunityListing {
+  cards: OpportunityCard[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const LIST_TABS = new Set<OpportunityListTab>(["for_you", "new", "nearby", "sector", "saved", "mine"]);
+const LIST_SORTS = new Set<OpportunityListSort>(["relevant", "newest", "deadline", "budget_high", "nearby"]);
+const LIST_TYPES = new Set<OpportunityType>(["request", "job", "sourcing", "offer", "capacity", "partnership", "urgent"]);
+const LIST_STATUSES = new Set<OpportunityStatus>(["draft", "active", "paused", "matching", "responses_received", "in_conversation", "party_selected", "preparing_deal", "completed", "cancelled", "expired"]);
+
+function cleanListFilters(opts: OpportunityListFilters) {
+  const tab = opts.tab && LIST_TABS.has(opts.tab) ? opts.tab : "for_you";
+  const sort = opts.sort && LIST_SORTS.has(opts.sort) ? opts.sort : tab === "new" ? "newest" : "relevant";
+  const requestedStatus = opts.status === "closed" || (opts.status && LIST_STATUSES.has(opts.status)) ? opts.status : "" as const;
+  const status = tab !== "mine" && (requestedStatus === "draft" || requestedStatus === "paused") ? "" as const : requestedStatus;
+  return {
+    tab,
+    query: (opts.query ?? "").trim().slice(0, 120),
+    type: opts.type && LIST_TYPES.has(opts.type) ? opts.type : "" as const,
+    location: (opts.location ?? "").trim().slice(0, 80),
+    sector: (opts.sector ?? "").trim().slice(0, 80),
+    date: opts.date === "today" || opts.date === "week" || opts.date === "month" ? opts.date : "" as const,
+    status,
+    sort,
+    page: Math.max(1, Math.floor(opts.page ?? 1)),
+    limit: Math.min(30, Math.max(6, Math.floor(opts.limit ?? 12))),
+  };
+}
+
+export async function getOpportunityListing(companyId: string, opts: OpportunityListFilters = {}): Promise<OpportunityListing> {
+  const filters = cleanListFilters(opts);
+  const viewerRows = await sql`SELECT municipality, city, province, industry FROM companies WHERE id = ${companyId} LIMIT 1`;
+  const viewer = viewerRows[0] ?? {};
+  const viewerMunicipality = ((viewer.municipality as string) || (viewer.city as string) || "").trim();
+  const viewerProvince = ((viewer.province as string) || "").trim();
+  const viewerIndustry = ((viewer.industry as string) || "").trim();
+
+  const values: unknown[] = [companyId];
+  const where: string[] = [];
+  const addValue = (value: unknown) => {
+    values.push(value);
+    return `$${values.length}`;
+  };
+
+  if (filters.tab === "mine") {
+    where.push("o.company_id = $1", "o.status <> 'draft'");
+  } else {
+    where.push("o.company_id <> $1");
+    if (filters.tab === "saved") {
+      where.push("saved_feedback.id IS NOT NULL", "o.status <> 'draft'");
+    } else {
+      if (!filters.status) where.push("o.status IN ('active', 'matching', 'responses_received', 'in_conversation')");
+      else where.push("o.status <> 'draft'", "o.status <> 'paused'");
+      where.push("(o.visibility_mode IN ('public', 'after_interest') OR viewer_match.id IS NOT NULL)");
+      where.push("NOT EXISTS (SELECT 1 FROM opportunity_feedback hidden_feedback WHERE hidden_feedback.opportunity_id = o.id AND hidden_feedback.company_id = $1 AND hidden_feedback.feedback_type = 'not_relevant')");
+    }
+
+    if (filters.tab === "nearby") {
+      const locationConditions: string[] = [];
+      if (viewerMunicipality) locationConditions.push(`LOWER(COALESCE(o.municipality, '')) = LOWER(${addValue(viewerMunicipality)})`);
+      if (viewerProvince) locationConditions.push(`LOWER(COALESCE(o.province, '')) = LOWER(${addValue(viewerProvince)})`);
+      locationConditions.push("o.location_type = 'remote'");
+      where.push(`(${locationConditions.join(" OR ")})`);
+    }
+
+    if (filters.tab === "sector") {
+      const sectorParts = ["o.category_id IN (SELECT category_id FROM company_services WHERE company_id = $1 AND active = true AND category_id IS NOT NULL)"];
+      if (viewerIndustry) sectorParts.push(`COALESCE(category.name, '') ILIKE ${addValue(`%${viewerIndustry}%`)}`);
+      where.push(`(${sectorParts.join(" OR ")})`);
+    }
+  }
+
+  if (filters.query) {
+    const p = addValue(`%${filters.query}%`);
+    where.push(`(o.title ILIKE ${p} OR COALESCE(o.description, '') ILIKE ${p} OR c.name ILIKE ${p} OR COALESCE(o.municipality, '') ILIKE ${p} OR COALESCE(category.name, '') ILIKE ${p})`);
+  }
+  if (filters.type) where.push(`o.opportunity_type = ${addValue(filters.type)}`);
+  if (filters.location) {
+    if (filters.location === "remote") where.push("o.location_type = 'remote'");
+    else {
+      const p = addValue(`%${filters.location}%`);
+      where.push(`(COALESCE(o.municipality, '') ILIKE ${p} OR COALESCE(o.province, '') ILIKE ${p} OR COALESCE(o.country, '') ILIKE ${p})`);
+    }
+  }
+  if (filters.sector) {
+    const p = addValue(filters.sector);
+    where.push(`o.category_id IN (WITH RECURSIVE descendants AS (SELECT id FROM service_categories WHERE id = ${p} UNION ALL SELECT child.id FROM service_categories child JOIN descendants parent ON child.parent_id = parent.id) SELECT id FROM descendants)`);
+  }
+  if (filters.date === "today") where.push("COALESCE(o.published_at, o.created_at) >= CURRENT_DATE");
+  if (filters.date === "week") where.push("COALESCE(o.published_at, o.created_at) >= now() - interval '7 days'");
+  if (filters.date === "month") where.push("COALESCE(o.published_at, o.created_at) >= now() - interval '30 days'");
+  if (filters.status === "closed") where.push("o.status IN ('completed', 'cancelled')");
+  else if (filters.status) where.push(`o.status = ${addValue(filters.status)}`);
+
+  let orderBy = "CASE WHEN viewer_match.total_score IS NOT NULL THEN 0 ELSE 1 END, viewer_match.total_score DESC NULLS LAST, COALESCE(o.published_at, o.created_at) DESC";
+  if (filters.sort === "newest") orderBy = "COALESCE(o.published_at, o.created_at) DESC";
+  if (filters.sort === "deadline") orderBy = "o.response_deadline ASC NULLS LAST, COALESCE(o.published_at, o.created_at) DESC";
+  if (filters.sort === "budget_high") orderBy = "GREATEST(COALESCE(o.budget_max, 0), COALESCE(o.budget_min, 0)) DESC, COALESCE(o.published_at, o.created_at) DESC";
+  if (filters.sort === "nearby") {
+    const municipalityParam = addValue(viewerMunicipality || "__none__");
+    const provinceParam = addValue(viewerProvince || "__none__");
+    orderBy = `CASE WHEN LOWER(COALESCE(o.municipality, '')) = LOWER(${municipalityParam}) THEN 0 WHEN LOWER(COALESCE(o.province, '')) = LOWER(${provinceParam}) THEN 1 WHEN o.location_type = 'remote' THEN 2 ELSE 3 END, COALESCE(o.published_at, o.created_at) DESC`;
+  }
+
+  const offset = (filters.page - 1) * filters.limit;
+  values.push(filters.limit, offset);
+  const limitParam = `$${values.length - 1}`;
+  const offsetParam = `$${values.length}`;
+  const rows = await sql.unsafe(`
+    SELECT o.*, c.name AS company_name, c.logo_color, c.logo_url, c.verified,
+           c.industry AS company_industry, c.municipality AS company_municipality, c.province AS company_province,
+           category.name AS category_name,
+           viewer_match.id AS match_id, viewer_match.total_score, viewer_match.reason_json, viewer_match.status AS match_status,
+           (saved_feedback.id IS NOT NULL) AS saved,
+           (SELECT count(*)::int FROM opportunity_responses response WHERE response.opportunity_id = o.id AND response.withdrawn_at IS NULL AND response.status <> 'question') AS response_count,
+           count(*) OVER()::int AS full_count
+    FROM opportunities o
+    JOIN companies c ON c.id = o.company_id
+    LEFT JOIN service_categories category ON category.id = o.category_id
+    LEFT JOIN opportunity_matches viewer_match ON viewer_match.opportunity_id = o.id AND viewer_match.company_id = $1
+    LEFT JOIN opportunity_feedback saved_feedback ON saved_feedback.opportunity_id = o.id AND saved_feedback.company_id = $1 AND saved_feedback.feedback_type = 'saved'
+    WHERE ${where.join(" AND ")}
+    ORDER BY ${orderBy}
+    LIMIT ${limitParam} OFFSET ${offsetParam}
+  `, values as never[]);
+
+  if (!rows.length && filters.page > 1) {
+    return getOpportunityListing(companyId, { ...opts, page: 1 });
+  }
+  const cards = rows.map((row) => buildCard(row, companyId));
+  const total = rows.length ? Number(rows[0].full_count) : 0;
+  return { cards, total, page: filters.page, pageSize: filters.limit, totalPages: Math.max(1, Math.ceil(total / filters.limit)) };
+}
+
 export async function getOpportunityCards(
+  companyId: string,
+  opts: { tab?: string; limit?: number } = {}
+): Promise<OpportunityCard[]> {
+  const tab: OpportunityListTab = opts.tab === "mine" || opts.tab === "saved" || opts.tab === "new" ? opts.tab : "for_you";
+  return (await getOpportunityListing(companyId, { tab, limit: opts.limit ?? 30 })).cards;
+}
+
+export async function getOpportunityCardsLegacy(
   companyId: string,
   opts: {
     tab?: string;
@@ -237,6 +432,7 @@ export async function getOpportunityCards(
 }
 
 function buildCard(r: Row, _viewerId: string): OpportunityCard {
+  void _viewerId;
   const base = mapOpportunity(r);
   const reasons = r.reason_json as string[] | null;
   return {
@@ -245,8 +441,13 @@ function buildCard(r: Row, _viewerId: string): OpportunityCard {
     companyLogoColor: r.logo_color as string,
     companyLogoUrl: (r.logo_url as string) ?? undefined,
     companyVerified: r.verified as boolean,
-    categoryPath: "", // filled lazily if needed
+    companyIndustry: (r.company_industry as string) ?? undefined,
+    companyMunicipality: (r.company_municipality as string) ?? undefined,
+    companyProvince: (r.company_province as string) ?? undefined,
+    categoryPath: (r.category_name as string) ?? "",
     responseCount: r.response_count as number,
+    saved: Boolean(r.saved),
+    matchId: (r.match_id as string) ?? undefined,
     matchScore: r.total_score != null ? (r.total_score as number) : undefined,
     matchReasons: reasons ?? undefined,
     matchStatus: (r.match_status as MatchStatus) ?? undefined,
@@ -316,8 +517,14 @@ function mapResponse(r: Row): OpportunityResponse {
   };
 }
 
-export async function getResponsesForOpportunity(opportunityId: string): Promise<OpportunityResponse[]> {
-  const rows = await sql`SELECT * FROM opportunity_responses WHERE opportunity_id = ${opportunityId} AND withdrawn_at IS NULL ORDER BY created_at ASC`;
+export async function getResponsesForOpportunity(
+  opportunityId: string,
+  viewerCompanyId: string,
+  isOwner: boolean
+): Promise<OpportunityResponse[]> {
+  const rows = isOwner
+    ? await sql`SELECT * FROM opportunity_responses WHERE opportunity_id = ${opportunityId} AND withdrawn_at IS NULL ORDER BY created_at ASC`
+    : await sql`SELECT * FROM opportunity_responses WHERE opportunity_id = ${opportunityId} AND responding_company_id = ${viewerCompanyId} AND withdrawn_at IS NULL ORDER BY created_at ASC`;
   return rows.map(mapResponse);
 }
 
