@@ -10,9 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vynta — Het Digitale Bedrijfsnetwerk van Nederland",
+  title: "Vynta — Het zakelijke netwerk van Nederland",
   description:
-    "Vind, contacteer en doe zaken met lokale bedrijven in minuten. Vynta verbindt het Nederlandse bedrijfsleven.",
+    "Het professionele netwerk waar Nederlandse bedrijven zakelijke kansen vinden en rechtstreeks met elkaar in contact komen.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png?v=3",
