@@ -70,7 +70,27 @@ try {
       VALUES (${users[0].id}, 'owner_bootstrapped', 'user', ${users[0].id}, ${JSON.stringify({ email })}::jsonb)
     `;
   });
-  console.log(`Owneraccount voor ${email} is actief.`);
+
+  const [owner] = await sql`
+    SELECT u.platform_role, u.account_status, u.password_hash, c.verified
+    FROM users u
+    LEFT JOIN companies c ON c.id = u.company_id
+    WHERE u.email = ${email}
+    LIMIT 1
+  `;
+  const passwordValid = owner
+    ? await bcrypt.compare(password, owner.password_hash)
+    : false;
+  if (
+    !owner ||
+    owner.platform_role !== "owner" ||
+    owner.account_status !== "active" ||
+    owner.verified !== true ||
+    !passwordValid
+  ) {
+    throw new Error("Owneraccount kon niet veilig worden geverifieerd.");
+  }
+  console.log("Owneraccount is actief.");
 } finally {
   await sql.end();
 }
