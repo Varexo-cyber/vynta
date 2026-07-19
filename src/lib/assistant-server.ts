@@ -520,7 +520,7 @@ export async function processAssistantQueryV2(
   }
 
   // 3. Find penalized articles from corrections
-  let penalizeArticleIds: string[] = [];
+  const penalizeArticleIds: string[] = [];
   if (intentMatch.isCorrection && conversationHistory.length > 0) {
     const lastAssistant = [...conversationHistory].reverse().find((m) => m.role === "assistant");
     if (lastAssistant) {

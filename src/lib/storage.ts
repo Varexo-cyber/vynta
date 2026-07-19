@@ -1,6 +1,7 @@
 import { mkdir, writeFile, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import type { Store } from "@netlify/blobs";
 
 export interface UploadResult {
   key: string;
@@ -88,14 +89,12 @@ class LocalStorageProvider implements StorageProvider {
  * Uses @netlify/blobs for persistent object storage.
  */
 class NetlifyBlobProvider implements StorageProvider {
-  private store: any = null;
+  private store: Store | null = null;
 
   private async getStore() {
     if (this.store) return this.store;
-    console.log("[storage] Initializing Netlify Blobs store 'vynta-uploads'");
     const { getStore } = await import("@netlify/blobs");
     this.store = await getStore("vynta-uploads");
-    console.log("[storage] Blobs store initialized");
     return this.store;
   }
 
@@ -105,8 +104,7 @@ class NetlifyBlobProvider implements StorageProvider {
   ): Promise<UploadResult> {
     const store = await this.getStore();
     const fullKey = `companies/${opts.companyId}/${opts.category}/${opts.key}`;
-    console.log("[storage] Writing blob, key:", fullKey, "size:", data.length);
-    await store.set(fullKey, data, {
+    await store.set(fullKey, Uint8Array.from(data).buffer, {
       metadata: {
         mimeType: opts.mimeType,
         companyId: opts.companyId,
@@ -114,7 +112,6 @@ class NetlifyBlobProvider implements StorageProvider {
         uploadedAt: new Date().toISOString(),
       },
     });
-    console.log("[storage] Blob written successfully");
     const url = `/api/storage/${fullKey}`;
     return {
       key: fullKey,
@@ -127,10 +124,8 @@ class NetlifyBlobProvider implements StorageProvider {
   async read(key: string): Promise<{ data: Buffer; mimeType: string } | null> {
     try {
       const store = await this.getStore();
-      console.log("[storage] Reading blob:", key);
       const arrayBuffer = await store.get(key, { type: "arrayBuffer" });
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        console.log("[storage] Blob not found or empty:", key);
         return null;
       }
       let mimeType = "application/octet-stream";
@@ -143,7 +138,6 @@ class NetlifyBlobProvider implements StorageProvider {
         console.warn("[storage] Could not read metadata for:", key, metaErr);
       }
       const buf = Buffer.from(arrayBuffer);
-      console.log("[storage] Blob read:", key, "size:", buf.length, "mime:", mimeType);
       return { data: buf, mimeType };
     } catch (err) {
       console.error("[storage] Error reading blob:", key, err);
@@ -192,9 +186,7 @@ let _provider: StorageProvider | null = null;
 export function getStorageProvider(): StorageProvider {
   if (!_provider) {
     const netlify = isNetlify();
-    console.log("[storage] isNetlify:", netlify, "NODE_ENV:", process.env.NODE_ENV, "cwd:", process.cwd());
     _provider = netlify ? new NetlifyBlobProvider() : new LocalStorageProvider();
-    console.log("[storage] Provider selected:", _provider.constructor.name);
   }
   return _provider;
 }

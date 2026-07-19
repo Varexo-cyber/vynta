@@ -30,7 +30,7 @@ export function ProductTour() {
 
   useEffect(() => {
     if (!currentTourStep) {
-      setTargetRect(null);
+      queueMicrotask(() => setTargetRect(null));
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -43,7 +43,7 @@ export function ProductTour() {
       setTargetRect(rect);
     };
 
-    updateRect();
+    requestAnimationFrame(updateRect);
     pollRef.current = setInterval(updateRect, 500);
 
     return () => {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
+import type postgres from "postgres";
 import { sql } from "./db";
 import {
   createSession,
@@ -31,6 +32,7 @@ function slugify(name: string) {
 const COLORS = ["#6d28d9", "#2563eb", "#16a34a", "#0891b2", "#d97706", "#7c3aed", "#0d9488", "#ea580c"];
 
 type Result = { ok: boolean; error?: string };
+const DUMMY_PASSWORD_HASH = "$2b$10$y4v/lwfhyE3cUZ4oqO6EuOl1zGwdtdgdES9tFN3VMhKX27kRjQRUC";
 
 /* ----------------------------- auth ----------------------------- */
 export async function signUp(input: {
@@ -53,8 +55,22 @@ export async function signUp(input: {
   logoUrl?: string;
 }): Promise<Result> {
   const email = input.email.trim().toLowerCase();
-  if (!email || !input.password || input.password.length < 6)
-    return { ok: false, error: "Vul een geldig e-mailadres en wachtwoord (min. 6 tekens) in." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !input.password || input.password.length < 10 || input.password.length > 200)
+    return { ok: false, error: "Vul een geldig e-mailadres en wachtwoord (min. 10 tekens) in." };
+  if (input.companyName.length > 120 || input.phone.length > 40 || input.address.length > 180 || input.postcode.length > 16 || input.city.length > 100 || input.province.length > 100 || input.industry.length > 120) {
+    return { ok: false, error: "Een of meer velden zijn te lang." };
+  }
+  if ((input.description?.length ?? 0) > 3000 || (input.website?.length ?? 0) > 500 || (input.kvkNumber?.length ?? 0) > 32 || (input.vatNumber?.length ?? 0) > 32) {
+    return { ok: false, error: "Een of meer optionele velden zijn te lang." };
+  }
+  if (input.website) {
+    try {
+      const website = new URL(input.website);
+      if (website.protocol !== "https:" && website.protocol !== "http:") throw new Error("invalid protocol");
+    } catch {
+      return { ok: false, error: "Vul een geldige website in, inclusief https://." };
+    }
+  }
   if (!input.companyName.trim()) return { ok: false, error: "Bedrijfsnaam is verplicht." };
   if (!input.phone.trim()) return { ok: false, error: "Telefoonnummer is verplicht." };
   if (!input.address.trim() || !input.postcode.trim() || !input.city.trim() || !input.province.trim() || !input.country.trim())
@@ -71,33 +87,7 @@ export async function signUp(input: {
   if (taken.length > 0) handle = `${handle}-${Math.random().toString(36).slice(2, 6)}`;
   const color = COLORS[Math.floor(Math.random() * COLORS.length)];
 
-  const [company] = await sql`
-    INSERT INTO companies (
-      name, handle, logo_color, industry,
-      city, province, country, municipality, municipality_id, address, postcode,
-      description, website, phone, email,
-      kvk_number, vat_number, logo_url
-    )
-    VALUES (
-      ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry},
-      ${input.city}, ${input.province}, ${input.country},
-      ${input.municipality || null}, ${input.municipalityId || null},
-      ${input.address}, ${input.postcode},
-      ${input.description || null}, ${input.website || null}, ${input.phone}, ${email},
-      ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
-    )
-    RETURNING id`;
-  const companyId = company.id as string;
-
   const hash = await hashPassword(input.password);
-  const [user] = await sql`
-    INSERT INTO users (company_id, email, password_hash, name, role)
-    VALUES (${companyId}, ${email}, ${hash}, ${input.companyName.trim()}, 'owner')
-    RETURNING id`;
-
-  await createSession(user.id as string);
-
-  // Automatic network memberships based on registered business address and industry.
   const membershipIds: string[] = [];
   const municipality = getMunicipalityByName(input.municipality || input.city);
   if (municipality) membershipIds.push(municipality.id);
@@ -106,13 +96,49 @@ export async function signUp(input: {
   const industrySlug = `ind-${input.industry.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   membershipIds.push(industrySlug, "nat-nl");
   const uniqueMembershipIds = Array.from(new Set(membershipIds)).filter(Boolean);
-  for (const nid of uniqueMembershipIds) {
-    await sql`
-      INSERT INTO network_members (company_id, network_id, origin)
-      VALUES (${companyId}, ${nid}, 'system')
-      ON CONFLICT DO NOTHING
-    `;
+
+  let userId: string;
+  try {
+    userId = await sql.begin(async (tx) => {
+      const [company] = await tx`
+        INSERT INTO companies (
+          name, handle, logo_color, industry,
+          city, province, country, municipality, municipality_id, address, postcode,
+          description, website, phone, email,
+          kvk_number, vat_number, logo_url
+        )
+        VALUES (
+          ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry},
+          ${input.city}, ${input.province}, ${input.country},
+          ${input.municipality || null}, ${input.municipalityId || null},
+          ${input.address}, ${input.postcode},
+          ${input.description || null}, ${input.website || null}, ${input.phone}, ${email},
+          ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
+        )
+        RETURNING id`;
+      const companyId = company.id as string;
+      const [user] = await tx`
+        INSERT INTO users (company_id, email, password_hash, name, role)
+        VALUES (${companyId}, ${email}, ${hash}, ${input.companyName.trim()}, 'owner')
+        RETURNING id`;
+
+      for (const networkId of uniqueMembershipIds) {
+        await tx`
+          INSERT INTO network_members (company_id, network_id, origin)
+          VALUES (${companyId}, ${networkId}, 'system')
+          ON CONFLICT DO NOTHING
+        `;
+      }
+      return user.id as string;
+    });
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "23505") {
+      return { ok: false, error: "Dit e-mailadres of deze bedrijfsnaam is al in gebruik." };
+    }
+    throw error;
   }
+
+  await createSession(userId);
 
   return { ok: true };
 }
@@ -267,10 +293,52 @@ export async function deleteCompanyBanner(): Promise<Result> {
 
 export async function signIn(email: string, password: string): Promise<Result> {
   const e = email.trim().toLowerCase();
-  const rows = await sql`SELECT id, password_hash FROM users WHERE email = ${e} LIMIT 1`;
-  if (rows.length === 0) return { ok: false, error: "Onjuist e-mailadres of wachtwoord." };
-  const valid = await verifyPassword(password, rows[0].password_hash as string);
-  if (!valid) return { ok: false, error: "Onjuist e-mailadres of wachtwoord." };
+  if (!e || e.length > 254 || !password || password.length > 200) {
+    return { ok: false, error: "Onjuist e-mailadres of wachtwoord." };
+  }
+  const attempts = await sql`
+    SELECT locked_until FROM auth_login_attempts
+    WHERE email = ${e} AND locked_until > now()
+    LIMIT 1
+  `;
+  if (attempts.length > 0) {
+    return { ok: false, error: "Te veel mislukte pogingen. Probeer het over 15 minuten opnieuw." };
+  }
+  const rows = await sql`
+    SELECT id, password_hash, COALESCE(to_jsonb(users)->>'account_status', 'active') AS account_status
+    FROM users WHERE email = ${e} LIMIT 1
+  `;
+  const passwordMatches = await verifyPassword(
+    password,
+    rows.length > 0 ? (rows[0].password_hash as string) : DUMMY_PASSWORD_HASH
+  );
+  const valid = rows.length > 0 && passwordMatches;
+  if (!valid) {
+    await sql`
+      INSERT INTO auth_login_attempts (email, failed_count, first_failed_at, last_failed_at, locked_until)
+      VALUES (${e}, 1, now(), now(), NULL)
+      ON CONFLICT (email) DO UPDATE SET
+        failed_count = CASE
+          WHEN auth_login_attempts.first_failed_at < now() - interval '15 minutes' THEN 1
+          ELSE auth_login_attempts.failed_count + 1
+        END,
+        first_failed_at = CASE
+          WHEN auth_login_attempts.first_failed_at < now() - interval '15 minutes' THEN now()
+          ELSE auth_login_attempts.first_failed_at
+        END,
+        last_failed_at = now(),
+        locked_until = CASE
+          WHEN auth_login_attempts.first_failed_at >= now() - interval '15 minutes'
+            AND auth_login_attempts.failed_count + 1 >= 8
+          THEN now() + interval '15 minutes'
+          ELSE NULL
+        END
+    `;
+    return { ok: false, error: "Onjuist e-mailadres of wachtwoord." };
+  }
+  if (rows[0].account_status === "suspended") return { ok: false, error: "Dit account is tijdelijk geschorst. Neem contact op met Vynta." };
+  if (rows[0].account_status === "deactivated") return { ok: false, error: "Dit account is gedeactiveerd. Neem contact op met Vynta." };
+  await sql`DELETE FROM auth_login_attempts WHERE email = ${e}`;
   await createSession(rows[0].id as string);
   return { ok: true };
 }
@@ -368,6 +436,7 @@ function extractYouTubeId(url: string): string | null {
 export async function fetchLinkPreview(
   url: string
 ): Promise<Result & { preview?: LinkPreviewData }> {
+  await requireCompanyId();
   try {
     new URL(url);
   } catch {
@@ -479,6 +548,7 @@ export async function extendPost(
 }
 
 export async function cleanupExpiredPosts(): Promise<number> {
+  await requireCompanyId();
   const rows =
     await sql`SELECT id, image_url, video_url, document_url FROM needs WHERE expires_at < now()`;
   let deleted = 0;
@@ -491,6 +561,7 @@ export async function cleanupExpiredPosts(): Promise<number> {
 }
 
 export async function notifyExpiringPosts(): Promise<number> {
+  await requireCompanyId();
   const rows = await sql`
     SELECT id, company_id, body
     FROM needs
@@ -794,8 +865,12 @@ export async function sendMessage(
 
 export async function markConversationRead(conversationId: string): Promise<void> {
   const companyId = await requireCompanyId();
-  await sql`UPDATE conversation_participants SET last_read_at = now()
-    WHERE conversation_id = ${conversationId} AND company_id = ${companyId}`;
+  const members = await sql`
+    UPDATE conversation_participants SET last_read_at = now()
+    WHERE conversation_id = ${conversationId} AND company_id = ${companyId}
+    RETURNING conversation_id
+  `;
+  if (members.length === 0) return;
   await sql`
     UPDATE messages SET status = 'read', read_at = now()
     WHERE conversation_id = ${conversationId}
@@ -859,8 +934,18 @@ export async function deleteDraft(draftId?: string): Promise<Result> {
 /* ---------------- calls ---------------- */
 
 async function getOtherParticipant(conversationId: string, companyId: string): Promise<string | null> {
-  const rows = await sql`SELECT company_id FROM conversation_participants
-    WHERE conversation_id = ${conversationId} AND company_id <> ${companyId} LIMIT 1`;
+  const rows = await sql`
+    SELECT other.company_id
+    FROM conversation_participants other
+    WHERE other.conversation_id = ${conversationId}
+      AND other.company_id <> ${companyId}
+      AND EXISTS (
+        SELECT 1 FROM conversation_participants mine
+        WHERE mine.conversation_id = ${conversationId}
+          AND mine.company_id = ${companyId}
+      )
+    LIMIT 1
+  `;
   return (rows[0]?.company_id as string) ?? null;
 }
 
@@ -997,9 +1082,10 @@ export async function sendSignal(
   `;
   if (!call) return { ok: false, error: "Oproep niet gevonden." };
   const receiverId = (call.caller_id as string) === companyId ? (call.callee_id as string) : (call.caller_id as string);
+  const serializedPayload = JSON.parse(JSON.stringify(payload)) as postgres.JSONValue;
   await sql`
     INSERT INTO call_signals (call_id, sender_id, receiver_id, type, payload)
-    VALUES (${callId}, ${companyId}, ${receiverId}, ${type}, ${sql.json(payload as any)})
+    VALUES (${callId}, ${companyId}, ${receiverId}, ${type}, ${sql.json(serializedPayload)})
   `;
   return { ok: true };
 }
@@ -1134,10 +1220,32 @@ export async function reportContact(input: {
 }): Promise<Result> {
   const companyId = await requireCompanyId();
   if (input.reportedId === companyId) return { ok: false, error: "Je kunt jezelf niet rapporteren." };
-  await sql`
+  const reported = await sql`SELECT 1 FROM companies WHERE id = ${input.reportedId} LIMIT 1`;
+  if (reported.length === 0) return { ok: false, error: "Bedrijf niet gevonden." };
+  if (input.conversationId) {
+    const participants = await sql`
+      SELECT company_id FROM conversation_participants
+      WHERE conversation_id = ${input.conversationId}
+        AND company_id IN (${companyId}, ${input.reportedId})
+    `;
+    if (participants.length !== 2) return { ok: false, error: "Geen toegang tot dit gesprek." };
+  }
+  const duplicate = await sql`
+    SELECT 1 FROM chat_reports
+    WHERE reporter_id = ${companyId}
+      AND reported_id = ${input.reportedId}
+      AND status = 'open'
+      AND conversation_id IS NOT DISTINCT FROM ${input.conversationId ?? null}
+    LIMIT 1
+  `;
+  if (duplicate.length > 0) return { ok: false, error: "Je hebt dit contact al gerapporteerd." };
+  const inserted = await sql`
     INSERT INTO chat_reports (reporter_id, reported_id, conversation_id, reason, details, include_messages)
     VALUES (${companyId}, ${input.reportedId}, ${input.conversationId ?? null}, ${input.reason}, ${input.details ?? null}, ${input.includeMessages ?? false})
+    ON CONFLICT DO NOTHING
+    RETURNING id
   `;
+  if (inserted.length === 0) return { ok: false, error: "Je hebt dit contact al gerapporteerd." };
   return { ok: true };
 }
 
@@ -1148,7 +1256,10 @@ export async function deleteMessageForMe(messageIds: string[]): Promise<Result> 
   for (const msgId of messageIds) {
     await sql`
       INSERT INTO message_visibility (message_id, user_id)
-      VALUES (${msgId}, ${companyId})
+      SELECT m.id, ${companyId}
+      FROM messages m
+      JOIN conversation_participants p ON p.conversation_id = m.conversation_id
+      WHERE m.id = ${msgId} AND p.company_id = ${companyId}
       ON CONFLICT (message_id, user_id) DO NOTHING
     `;
   }
@@ -1194,7 +1305,12 @@ export async function forwardMessages(input: {
     if (member.length === 0) continue;
 
     for (const msgId of input.messageIds) {
-      const rows = await sql`SELECT * FROM messages WHERE id = ${msgId}`;
+      const rows = await sql`
+        SELECT m.* FROM messages m
+        JOIN conversation_participants p ON p.conversation_id = m.conversation_id
+        WHERE m.id = ${msgId} AND p.company_id = ${companyId}
+        LIMIT 1
+      `;
       if (rows.length === 0) continue;
       const orig = rows[0];
       const [newRow] = await sql`
@@ -1226,6 +1342,12 @@ export async function pinMessage(input: {
   const companyId = await requireCompanyId();
   const member = await sql`SELECT 1 FROM conversation_participants WHERE conversation_id = ${input.conversationId} AND company_id = ${companyId}`;
   if (member.length === 0) return { ok: false, error: "Geen toegang tot dit gesprek." };
+  const message = await sql`
+    SELECT 1 FROM messages
+    WHERE id = ${input.messageId} AND conversation_id = ${input.conversationId}
+    LIMIT 1
+  `;
+  if (message.length === 0) return { ok: false, error: "Bericht niet gevonden in dit gesprek." };
 
   const active = await sql`
     SELECT id FROM pinned_messages
@@ -1248,7 +1370,14 @@ export async function unpinMessage(conversationId: string, messageId: string): P
   const companyId = await requireCompanyId();
   await sql`
     DELETE FROM pinned_messages
-    WHERE conversation_id = ${conversationId} AND message_id = ${messageId}
+    WHERE conversation_id = ${conversationId}
+      AND message_id = ${messageId}
+      AND EXISTS (
+        SELECT 1
+        FROM conversation_participants
+        WHERE conversation_id = ${conversationId}
+          AND company_id = ${companyId}
+      )
   `;
   revalidatePath(`/messages/${conversationId}`);
   return { ok: true };

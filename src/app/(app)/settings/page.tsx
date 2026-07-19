@@ -16,7 +16,6 @@ import {
   FileText,
   HelpCircle,
   Sparkles,
-  RotateCcw,
   MessageSquare,
   Target,
   Brain,
@@ -47,8 +46,7 @@ export default function SettingsPage() {
     assistantEnabled, setAssistantEnabled,
     productTipsEnabled, setProductTipsEnabled,
     experienceLevel, setExperienceLevel,
-    startTour, skipOnboardingFlow, refreshOnboarding,
-    onboardingStatus,
+    startTour,
   } = useHelp();
   const [editOpen, setEditOpen] = useState(false);
   const [draftCount, setDraftCount] = useState(0);
@@ -215,12 +213,6 @@ export default function SettingsPage() {
           label="Producttour opnieuw starten"
           hint="Korte rondleiding"
           onClick={() => startTour("product-tour")}
-        />
-        <Row
-          icon={RotateCcw}
-          label="Onboarding opnieuw openen"
-          hint={onboardingStatus === "completed" ? "Voltooid" : onboardingStatus === "skipped" ? "Overgeslagen" : "Niet voltooid"}
-          onClick={() => router.push("/onboarding")}
         />
         <Row
           icon={HelpCircle}

@@ -1,7 +1,7 @@
 "use server";
 
 import { sql } from "./db";
-import { getSession } from "./auth";
+import { requirePlatformAdmin } from "./auth";
 
 /* ----------------------------- Admin dashboard data ----------------------------- */
 
@@ -31,8 +31,7 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const session = await getSession();
-  if (!session) throw new Error("UNAUTHENTICATED");
+  await requirePlatformAdmin();
 
   const statsRows = await sql`
     SELECT
@@ -76,8 +75,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function getImprovementQueue(): Promise<ImprovementQueueItem[]> {
-  const session = await getSession();
-  if (!session) throw new Error("UNAUTHENTICATED");
+  await requirePlatformAdmin();
 
   const rows = await sql`
     SELECT id, question_cluster, example_questions, current_answer, current_article_id,
@@ -106,8 +104,7 @@ export async function resolveImprovementItem(
   resolvedAnswer: string,
   resolvedArticleId: string | null
 ): Promise<{ ok: boolean }> {
-  const session = await getSession();
-  if (!session) throw new Error("UNAUTHENTICATED");
+  await requirePlatformAdmin();
 
   await sql`
     UPDATE assistant_improvement_queue
@@ -119,8 +116,7 @@ export async function resolveImprovementItem(
 }
 
 export async function blockImprovementItem(id: string): Promise<{ ok: boolean }> {
-  const session = await getSession();
-  if (!session) throw new Error("UNAUTHENTICATED");
+  await requirePlatformAdmin();
 
   await sql`
     UPDATE assistant_improvement_queue

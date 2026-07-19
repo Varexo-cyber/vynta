@@ -622,10 +622,16 @@ export function useCall({
 
   // Start speaking detection when streams change during connected call.
   useEffect(() => {
+    let cancelled = false;
     if (callState === "connected" && (localStream || remoteStream)) {
-      startSpeakingDetection();
+      queueMicrotask(() => {
+        if (!cancelled) startSpeakingDetection();
+      });
     }
-    return () => { stopSpeakingDetection(); };
+    return () => {
+      cancelled = true;
+      stopSpeakingDetection();
+    };
   }, [callState, localStream, remoteStream, startSpeakingDetection, stopSpeakingDetection]);
 
   // Cleanup on unmount.

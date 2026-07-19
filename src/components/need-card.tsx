@@ -21,8 +21,8 @@ import {
   UserPlus,
   UserCheck,
   Eye,
-  FileText,
   Link2,
+  Flag,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -41,6 +41,7 @@ import { toggleSave, respondToNeed, toggleLike, addComment, getComments, deleteP
 import { CompanyAvatar, VerifiedBadge } from "./ui/primitives";
 import { NetworkIcon } from "./network-icon";
 import { POST_TYPES } from "@/lib/need-types";
+import { reportPost } from "@/lib/platform-admin";
 
 /* ------------------------------------------------------------------ */
 /* Double-tap-to-like hook + heart burst animation                     */
@@ -117,9 +118,13 @@ function HeartBurst({ x, y, id }: { x: number; y: number; id: number }) {
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-  const offsetX = (Math.random() - 0.5) * 30;
-  const offsetY = (Math.random() - 0.5) * 20;
-  const rotation = (Math.random() - 0.5) * 16;
+  const seeded = (salt: number) => {
+    const value = Math.sin((id + salt) * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+  };
+  const offsetX = (seeded(1) - 0.5) * 30;
+  const offsetY = (seeded(2) - 0.5) * 20;
+  const rotation = (seeded(3) - 0.5) * 16;
   const px = x + offsetX;
   const py = y + offsetY;
 
@@ -274,8 +279,6 @@ export function PostCard({
     .map((id) => networkById(id))
     .filter((n): n is NonNullable<typeof n> => !!n);
 
-  if (!company) return null;
-
   const onLike = async () => {
     const next = !liked;
     setLiked(next);
@@ -309,9 +312,11 @@ export function PostCard({
     });
     setTimeout(() => setLikeAnim(false), 300);
     router.refresh();
-  }, [liked, post.id]);
+  }, [liked, post.id, router]);
 
   const { handleDoubleClick, handleTouchEnd } = useDoubleTapLike(onDoubleLike);
+
+  if (!company) return null;
 
   const onSave = async () => {
     setSaved((s) => !s);
@@ -726,6 +731,11 @@ function PostHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [extending, setExtending] = useState(false);
   const [extendLoading, setExtendLoading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState<"spam" | "misleiding" | "intimidatie" | "ongepast" | "verdacht" | "fraude" | "anders">("spam");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const isMine = post.companyId === me.id;
 
   const onExtend = async (days: number | null) => {
@@ -741,7 +751,22 @@ function PostHeader({
     }
   };
 
+  const submitReport = async () => {
+    setReportLoading(true);
+    setReportError(null);
+    const res = await reportPost({ postId: post.id, reason: reportReason, details: reportDetails });
+    setReportLoading(false);
+    if (!res.ok) {
+      setReportError(res.error ?? "Rapporteren is niet gelukt.");
+      return;
+    }
+    setShowReportModal(false);
+    setReportDetails("");
+    toast("Post gerapporteerd", "Het Vynta-team beoordeelt je melding.");
+  };
+
   return (
+    <>
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="flex items-start gap-4">
         <Link href={`/company/${company.id}`} className="shrink-0">
@@ -859,16 +884,83 @@ function PostHeader({
                 )}
                 {!isMine && (
                   <button
-                    onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-muted transition-colors hover:bg-surface-2"
+                    onClick={() => { setMenuOpen(false); setReportError(null); setShowReportModal(true); }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
                   >
-                    Meer opties binnenkort
+                    <Flag size={16} /> Rapporteren
                   </button>
                 )}
               </>
             )}
           </div>
         )}
+      </div>
+    </div>
+    <ReportPostModal
+      open={showReportModal}
+      companyName={company.name}
+      reason={reportReason}
+      details={reportDetails}
+      loading={reportLoading}
+      error={reportError}
+      onReasonChange={setReportReason}
+      onDetailsChange={setReportDetails}
+      onCancel={() => { if (!reportLoading) setShowReportModal(false); }}
+      onConfirm={submitReport}
+    />
+    </>
+  );
+}
+
+function ReportPostModal({
+  open,
+  companyName,
+  reason,
+  details,
+  loading,
+  error,
+  onReasonChange,
+  onDetailsChange,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  companyName: string;
+  reason: "spam" | "misleiding" | "intimidatie" | "ongepast" | "verdacht" | "fraude" | "anders";
+  details: string;
+  loading: boolean;
+  error: string | null;
+  onReasonChange: (reason: "spam" | "misleiding" | "intimidatie" | "ongepast" | "verdacht" | "fraude" | "anders") => void;
+  onDetailsChange: (details: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+  const reasons = [
+    ["spam", "Spam"],
+    ["misleiding", "Misleidende informatie"],
+    ["fraude", "Mogelijke fraude"],
+    ["intimidatie", "Intimidatie"],
+    ["ongepast", "Ongepaste inhoud"],
+    ["verdacht", "Verdacht gedrag"],
+    ["anders", "Anders"],
+  ] as const;
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="report-post-title">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-2xl">
+        <h2 id="report-post-title" className="text-lg font-bold">Post rapporteren</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">Vertel ons wat er niet klopt aan de post van {companyName}. Misbruik van rapportages kan worden beperkt.</p>
+        <label className="mt-5 block text-sm font-semibold">Reden</label>
+        <select value={reason} onChange={(e) => onReasonChange(e.target.value as typeof reason)} className="mt-2 w-full rounded-2xl border border-border bg-surface-2 px-4 py-3 text-sm outline-none focus:border-border-strong">
+          {reasons.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        <label className="mt-4 block text-sm font-semibold">Toelichting <span className="font-normal text-muted">(optioneel)</span></label>
+        <textarea value={details} onChange={(e) => onDetailsChange(e.target.value)} rows={4} maxLength={1000} placeholder="Geef context die de beoordeling helpt…" className="mt-2 w-full resize-none rounded-2xl bg-surface-2 px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-border-strong" />
+        {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onCancel} disabled={loading} className="rounded-full px-4 py-2 text-sm font-semibold text-muted hover:bg-surface-2 disabled:opacity-50">Annuleren</button>
+          <button onClick={onConfirm} disabled={loading} className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background disabled:opacity-50">{loading ? "Versturen…" : "Melding versturen"}</button>
+        </div>
       </div>
     </div>
   );

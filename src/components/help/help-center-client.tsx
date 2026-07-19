@@ -88,7 +88,7 @@ export function HelpCenterClient() {
       {query.trim() && searchResults.length === 0 && (
         <div className="mb-8 rounded-2xl border border-border bg-surface p-8 text-center">
           <p className="text-sm text-muted">
-            Geen resultaten gevonden voor "{query}". Probeer een andere zoekterm of vraag de Vynta Assistent.
+            Geen resultaten gevonden voor &ldquo;{query}&rdquo;. Probeer een andere zoekterm of vraag de Vynta Assistent.
           </p>
         </div>
       )}

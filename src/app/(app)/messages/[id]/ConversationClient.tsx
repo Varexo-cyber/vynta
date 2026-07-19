@@ -83,6 +83,16 @@ type PendingAttachment = {
   attachment?: MessageAttachment;
 };
 
+type ReportReason = "spam" | "misleiding" | "intimidatie" | "ongepast" | "verdacht" | "fraude" | "anders";
+type ParsedMessageMeta = Partial<MessageAttachment> & {
+  samples?: number[];
+  id?: string;
+  name?: string;
+  industry?: string;
+  city?: string;
+  verified?: boolean;
+};
+
 export function ConversationClient({
   conversation,
   needBody,
@@ -199,8 +209,10 @@ export function ConversationClient({
   // Reset minimized state when call ends
   useEffect(() => {
     if (call.callState === "idle") {
-      setCallMinimized(false);
-      setCallFullscreen(false);
+      queueMicrotask(() => {
+        setCallMinimized(false);
+        setCallFullscreen(false);
+      });
     }
   }, [call.callState]);
 
@@ -214,6 +226,7 @@ export function ConversationClient({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sampleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelRecordingRef = useRef(false);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
 
   const isNearBottom = useCallback(() => {
@@ -264,18 +277,20 @@ export function ConversationClient({
 
   useEffect(() => {
     markConversationRead(conversation.id);
-    fetchLatest();
+    queueMicrotask(() => fetchLatest());
     const id = setInterval(fetchLatest, 4000);
     return () => clearInterval(id);
   }, [conversation.id, fetchLatest]);
 
   useEffect(() => {
     scrollToBottom(false);
-  }, []);
+  }, [scrollToBottom]);
 
   useEffect(() => {
-    if (isNearBottom()) scrollToBottom();
-    else setShowScrollButton(true);
+    requestAnimationFrame(() => {
+      if (isNearBottom()) scrollToBottom();
+      else setShowScrollButton(true);
+    });
   }, [messages.length, isNearBottom, scrollToBottom]);
 
   const handleScroll = useCallback(() => {
@@ -558,12 +573,12 @@ export function ConversationClient({
     if (res.ok) setBlocked(false);
   }, [conversation.companyId]);
 
-  const handleReport = useCallback(async (reason: string, details: string, includeMessages: boolean) => {
+  const handleReport = useCallback(async (reason: ReportReason, details: string, includeMessages: boolean) => {
     setActionLoading(true);
     const res = await reportContact({
       reportedId: conversation.companyId,
       conversationId: conversation.id,
-      reason: reason as any,
+      reason,
       details: details || undefined,
       includeMessages,
     });
@@ -653,6 +668,7 @@ export function ConversationClient({
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      cancelRecordingRef.current = false;
       const chunks: Blob[] = [];
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
@@ -663,6 +679,7 @@ export function ConversationClient({
         audioContextRef.current = null;
         analyserRef.current = null;
         if (sampleIntervalRef.current) clearInterval(sampleIntervalRef.current);
+        if (cancelRecordingRef.current) return;
         const blob = new Blob(chunks, { type: mimeType });
         setRecording((r) => ({
           ...r,
@@ -722,7 +739,7 @@ export function ConversationClient({
 
   const cancelRecording = () => {
     const recorder = recording.mediaRecorder;
-    if (recorder) recorder.onstop = null;
+    cancelRecordingRef.current = true;
     recorder?.stop();
     recorder?.stream.getTracks().forEach((t) => t.stop());
     audioContextRef.current?.close();
@@ -1758,7 +1775,7 @@ function DocumentAttachment({
   return (
     <div className="space-y-1.5">
       <a
-        href={attachment?.url || "#"}
+        href={attachment?.url}
         target="_blank"
         rel="noreferrer"
         className={cn(
@@ -1975,20 +1992,33 @@ function getAmplitude(analyser: AnalyserNode) {
   return Math.min(1, Math.sqrt(sum / data.length) * 3);
 }
 
-function parseMeta(meta?: string): any {
+function parseJson(meta?: string): unknown {
   if (!meta) return null;
   try {
-    return JSON.parse(meta);
+    return JSON.parse(meta) as unknown;
   } catch {
     return null;
   }
 }
 
+function parseMeta(meta?: string): ParsedMessageMeta | null {
+  const value = parseJson(meta);
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as ParsedMessageMeta)
+    : null;
+}
+
+function isMessageAttachment(value: unknown): value is MessageAttachment {
+  if (!value || typeof value !== "object") return false;
+  const item = value as { url?: unknown; type?: unknown };
+  return typeof item.url === "string" && ["image", "video", "document", "voice"].includes(String(item.type));
+}
+
 function parseAttachments(meta?: string): MessageAttachment[] {
-  const data = parseMeta(meta);
+  const data = parseJson(meta);
   if (!data) return [];
-  if (Array.isArray(data)) return data as MessageAttachment[];
-  if (data.url) return [data as MessageAttachment];
+  if (Array.isArray(data)) return data.filter(isMessageAttachment);
+  if (isMessageAttachment(data)) return [data];
   return [];
 }
 
@@ -2126,11 +2156,11 @@ function ReportModal({
 }: {
   open: boolean;
   loading: boolean;
-  onSubmit: (reason: string, details: string, includeMessages: boolean) => Promise<{ ok: boolean; error?: string }>;
+  onSubmit: (reason: ReportReason, details: string, includeMessages: boolean) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
   onBlockAfter: () => void;
 }) {
-  const [reason, setReason] = useState<string>("");
+  const [reason, setReason] = useState<ReportReason | "">("");
   const [details, setDetails] = useState("");
   const [includeMessages, setIncludeMessages] = useState(true);
   const [submitted, setSubmitted] = useState(false);
@@ -2138,11 +2168,13 @@ function ReportModal({
 
   useEffect(() => {
     if (open) {
-      setReason("");
-      setDetails("");
-      setIncludeMessages(true);
-      setSubmitted(false);
-      setAskBlock(false);
+      queueMicrotask(() => {
+        setReason("");
+        setDetails("");
+        setIncludeMessages(true);
+        setSubmitted(false);
+        setAskBlock(false);
+      });
     }
   }, [open]);
 
@@ -2337,7 +2369,7 @@ function ContactInfoPanel({
           ].map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as any)}
+              onClick={() => setTab(t.key as "info" | "media" | "docs" | "links")}
               className={cn(
                 "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                 tab === t.key ? "bg-foreground text-background" : "text-muted hover:bg-surface-2"

@@ -40,6 +40,7 @@ export default async function AppLayout({
   return (
     <AppProvider
       me={me}
+      platformRole={session.platformRole}
       companies={companies}
       myNetworks={myNetworks}
       networks={networks}

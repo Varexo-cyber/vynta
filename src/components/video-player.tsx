@@ -19,6 +19,7 @@ export function VideoPlayer({
   const controlsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [muted, setMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -39,6 +40,7 @@ export function VideoPlayer({
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
       setProgress(video.currentTime / (video.duration || 1));
       setDuration(video.duration || 0);
     };
@@ -98,8 +100,6 @@ export function VideoPlayer({
       video.requestFullscreen().catch(() => {});
     }
   };
-
-  const currentTime = videoRef.current?.currentTime ?? 0;
 
   return (
     <div
