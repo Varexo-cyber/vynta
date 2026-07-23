@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
-import { GoogleIcon } from "@/components/google-icon";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import { VyntaBrand } from "@/components/vynta-brand";
 import { signIn } from "@/lib/actions";
 
@@ -75,9 +75,7 @@ function AuthContent() {
           <h2 className="text-3xl font-semibold tracking-tight">Welkom terug</h2>
           <p className="mt-2 text-base text-muted">Log in bij je bedrijf.</p>
 
-          <Link href="/api/auth/google/start" className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-2xl bg-surface text-sm font-semibold ring-1 ring-inset ring-border transition-all hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-lg">
-            <GoogleIcon /> Doorgaan met Google
-          </Link>
+          <GoogleAuthButton className="mt-8" onError={(message) => setError(message || null)} />
           <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />of<span className="h-px flex-1 bg-border" /></div>
 
           <form onSubmit={submit} className="flex flex-col gap-3">

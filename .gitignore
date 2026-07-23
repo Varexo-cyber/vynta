@@ -62,6 +62,11 @@ logs/
 /android/app/build/
 /ios/App/build/
 
+# Android signing material (never commit private upload keys)
+*.jks
+*.keystore
+/android/keystore.properties
+
 # IDE
 .idea/
 .vscode/
