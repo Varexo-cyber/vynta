@@ -7,6 +7,7 @@ import { createSession } from "@/lib/auth";
 
 export const GOOGLE_SIGNUP_COOKIE = "vynta_google_signup";
 export const GOOGLE_NATIVE_NONCE_COOKIE = "vynta_google_native_nonce";
+const GOOGLE_SIGNUP_MAX_AGE_SECONDS = 60 * 60;
 export const GOOGLE_FLOW_COOKIES = {
   state: "vynta_google_state",
   nonce: "vynta_google_nonce",
@@ -105,7 +106,9 @@ export async function completeGoogleIdentity(identity: VerifiedGoogleIdentity): 
 
   const signupToken = randomBytes(32).toString("base64url");
   const tokenHash = hashOAuthToken(signupToken);
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  // Geef een gebruiker genoeg tijd om de volledige bedrijfs-onboarding zorgvuldig
+  // in te vullen zonder dat de Google-koppeling halverwege stilletjes verloopt.
+  const expiresAt = new Date(Date.now() + GOOGLE_SIGNUP_MAX_AGE_SECONDS * 1000);
   await sql`
     INSERT INTO oauth_signup_intents (token_hash, provider, provider_subject, email, display_name, avatar_url, expires_at)
     VALUES (${tokenHash}, 'google', ${identity.subject}, ${email}, ${identity.name}, ${identity.avatarUrl}, ${expiresAt})
@@ -122,7 +125,7 @@ export async function completeGoogleIdentity(identity: VerifiedGoogleIdentity): 
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 900,
+    maxAge: GOOGLE_SIGNUP_MAX_AGE_SECONDS,
   });
   return { ok: true, next: "/onboarding?google=connected" };
 }
