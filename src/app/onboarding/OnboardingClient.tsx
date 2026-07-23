@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Building2, Globe, Map, MapPin } from "lucide-react";
@@ -14,6 +13,7 @@ import { getMunicipalityByName, getProvinceByName } from "@/lib/dutch-networks";
 import type { Network } from "@/lib/types";
 import { VyntaBrand } from "@/components/vynta-brand";
 import { GoogleIcon } from "@/components/google-icon";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import type { PendingGoogleProfile } from "@/lib/google-auth";
 
 function formatPostcode(pc: string) {
@@ -313,7 +313,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
                   </div>
                 ) : (
                   <>
-                    <Link href="/api/auth/google/start" className="mt-8 flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-border bg-surface text-sm font-semibold transition-all hover:-translate-y-0.5 hover:bg-surface-2"><GoogleIcon /> Doorgaan met Google</Link>
+                    <GoogleAuthButton className="mt-8 border border-border" onError={(message) => setError(message || null)} />
                     <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />of met e-mail<span className="h-px flex-1 bg-border" /></div>
                   </>
                 )}

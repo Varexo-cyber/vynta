@@ -1,13 +1,9 @@
-import { randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createSession } from "@/lib/auth";
-import { sql } from "@/lib/db";
 import {
+  completeGoogleIdentity,
   createGoogleClient,
   getGoogleConfiguration,
   GOOGLE_FLOW_COOKIES,
-  GOOGLE_SIGNUP_COOKIE,
-  hashOAuthToken,
   secureEqual,
 } from "@/lib/google-auth";
 
@@ -44,60 +40,15 @@ export async function GET(request: NextRequest) {
       return redirectWithError(request, "google_unverified");
     }
 
-    const email = payload.email.trim().toLowerCase();
-    const subject = payload.sub;
-    const existingBySubject = await sql`
-      SELECT id, account_status FROM users WHERE google_subject = ${subject} LIMIT 1
-    `;
-    let userId: string | null = null;
-    let accountStatus: string | null = null;
+    const completion = await completeGoogleIdentity({
+      subject: payload.sub,
+      email: payload.email,
+      name: payload.name || "",
+      avatarUrl: payload.picture || null,
+    });
+    if (!completion.ok) return redirectWithError(request, completion.error);
 
-    if (existingBySubject.length > 0) {
-      userId = existingBySubject[0].id as string;
-      accountStatus = existingBySubject[0].account_status as string;
-    } else {
-      const existingByEmail = await sql`
-        SELECT id, google_subject, auth_provider, account_status FROM users WHERE email = ${email} LIMIT 1
-      `;
-      if (existingByEmail.length > 0) {
-        const linkedSubject = existingByEmail[0].google_subject as string | null;
-        if (linkedSubject && linkedSubject !== subject) return redirectWithError(request, "google_account_conflict");
-        const rows = await sql`
-          UPDATE users
-          SET google_subject = ${subject},
-              auth_provider = CASE WHEN auth_provider = 'password' THEN 'password_google' ELSE 'google' END
-          WHERE id = ${existingByEmail[0].id as string}
-          RETURNING id, account_status
-        `;
-        userId = rows[0].id as string;
-        accountStatus = rows[0].account_status as string;
-      }
-    }
-
-    if (userId) {
-      if (accountStatus !== "active") return redirectWithError(request, "account_inactive");
-      await createSession(userId);
-      const response = NextResponse.redirect(new URL("/feed", request.url));
-      for (const cookie of Object.values(GOOGLE_FLOW_COOKIES)) response.cookies.delete(cookie);
-      return response;
-    }
-
-    const signupToken = randomBytes(32).toString("base64url");
-    const tokenHash = hashOAuthToken(signupToken);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    await sql`
-      INSERT INTO oauth_signup_intents (token_hash, provider, provider_subject, email, display_name, avatar_url, expires_at)
-      VALUES (${tokenHash}, 'google', ${subject}, ${email}, ${payload.name || ""}, ${payload.picture || null}, ${expiresAt})
-      ON CONFLICT (provider, provider_subject) DO UPDATE SET
-        token_hash = EXCLUDED.token_hash,
-        email = EXCLUDED.email,
-        display_name = EXCLUDED.display_name,
-        avatar_url = EXCLUDED.avatar_url,
-        expires_at = EXCLUDED.expires_at,
-        created_at = now()
-    `;
-    const response = NextResponse.redirect(new URL("/onboarding?google=connected", request.url));
-    response.cookies.set(GOOGLE_SIGNUP_COOKIE, signupToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 900 });
+    const response = NextResponse.redirect(new URL(completion.next, request.url));
     for (const cookie of Object.values(GOOGLE_FLOW_COOKIES)) response.cookies.delete(cookie);
     return response;
   } catch {

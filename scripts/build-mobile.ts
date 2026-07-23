@@ -8,7 +8,7 @@ mkdirSync(dist, { recursive: true });
 // Deze URL laadt de app in de native webview.
 // Lokaal testen: zet dit op je dev machine IP, bijv. http://192.168.1.10:3000
 const serverUrl =
-  process.env.CAPACITOR_SERVER_URL || "https://vynta.netlify.app";
+  process.env.CAPACITOR_SERVER_URL || "https://vynta.nl";
 
 writeFileSync(
   resolve(dist, "index.html"),
