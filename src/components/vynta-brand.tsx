@@ -5,7 +5,15 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export function VyntaMark({ size = 38, className }: { size?: number; className?: string }) {
+export function VyntaMark({
+  size = 38,
+  className,
+  src = "/logo.png",
+}: {
+  size?: number;
+  className?: string;
+  src?: string;
+}) {
   return (
     <span
       className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-[10px]", className)}
@@ -13,7 +21,7 @@ export function VyntaMark({ size = 38, className }: { size?: number; className?:
       aria-hidden="true"
     >
       <Image
-        src="/logo.png"
+        src={src}
         alt=""
         width={size}
         height={size}
@@ -31,11 +39,13 @@ export function VyntaBrand({
   size = 38,
   className,
   textClassName,
+  markSrc,
 }: {
   href?: string;
   size?: number;
   className?: string;
   textClassName?: string;
+  markSrc?: string;
 }) {
   return (
     <Link href={href} className={cn("group inline-flex items-center", className)} aria-label="Vynta homepage">
@@ -45,7 +55,7 @@ export function VyntaBrand({
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 420, damping: 22 }}
       >
-        <VyntaMark size={size} />
+        <VyntaMark size={size} src={markSrc} />
         <span className={cn("font-bold leading-none tracking-[-0.04em]", textClassName)} style={{ fontSize: Math.max(16, size * 0.45) }}>
           ynta
         </span>

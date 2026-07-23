@@ -41,6 +41,31 @@ function networkIcon(type: string) {
   return <Building2 size={20} />;
 }
 
+class OnboardingTimeoutError extends Error {}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 25_000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new OnboardingTimeoutError()), timeoutMs);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+function onboardingErrorMessage(error: unknown) {
+  if (error instanceof OnboardingTimeoutError) {
+    return "Dit duurt langer dan normaal. Controleer je verbinding en probeer het over een minuut opnieuw. Is je account al aangemaakt? Log dan in via Google.";
+  }
+  return "Er ging technisch iets mis. Je gegevens zijn niet verloren; probeer het opnieuw.";
+}
+
 export function OnboardingClient({ networks, googleProfile }: { networks: Network[]; googleProfile: PendingGoogleProfile | null }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -94,30 +119,37 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
     if (step === 3) {
       setLoading(true);
       setError(null);
-      const companyInput = {
-        companyName: name,
-        phone,
-        address,
-        postcode,
-        city: place || city,
-        province,
-        country,
-        municipality,
-        municipalityId,
-        industry,
-        kvkNumber: kvkNumber || undefined,
-        vatNumber: vatNumber || undefined,
-      };
-      const res = googleProfile
-        ? await signUpWithGoogle(companyInput)
-        : await signUp({ ...companyInput, email, password });
-      setLoading(false);
-      if (!res.ok) {
-        setError(res.error ?? "Account aanmaken mislukt");
-        return;
+      try {
+        const companyInput = {
+          companyName: name,
+          phone,
+          address,
+          postcode,
+          city: place || city,
+          province,
+          country,
+          municipality,
+          municipalityId,
+          industry,
+          kvkNumber: kvkNumber || undefined,
+          vatNumber: vatNumber || undefined,
+        };
+        const res = await withTimeout(
+          googleProfile
+            ? signUpWithGoogle(companyInput)
+            : signUp({ ...companyInput, email, password })
+        );
+        if (!res.ok) {
+          setError(res.error ?? "Account aanmaken mislukt");
+          return;
+        }
+        setSelectedNetworks(recommendedNetworks.map((n) => n.id));
+        setStep(4);
+      } catch (actionError) {
+        setError(onboardingErrorMessage(actionError));
+      } finally {
+        setLoading(false);
       }
-      setSelectedNetworks(recommendedNetworks.map((n) => n.id));
-      setStep(4);
       return;
     }
     if (step === 4) {
@@ -127,13 +159,25 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
     if (step === 5) {
       setLoading(true);
       setError(null);
-      await joinNetworks(selectedNetworks);
       try {
-        const { completeOnboarding } = await import("@/lib/help-actions-server");
-        await completeOnboarding(goals, experienceLevel);
-      } catch {}
-      setLoading(false);
-      router.push("/feed");
+        const joined = await withTimeout(joinNetworks(selectedNetworks));
+        if (!joined.ok) {
+          setError(joined.error ?? "Je netwerken konden niet worden opgeslagen.");
+          return;
+        }
+        try {
+          const { completeOnboarding } = await import("@/lib/help-actions-server");
+          await withTimeout(completeOnboarding(goals, experienceLevel), 15_000);
+        } catch {
+          // De persoonlijke rondleiding mag een succesvol account niet blokkeren.
+        }
+        router.replace("/feed");
+        router.refresh();
+      } catch (actionError) {
+        setError(onboardingErrorMessage(actionError));
+      } finally {
+        setLoading(false);
+      }
       return;
     }
   };
@@ -155,7 +199,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
         }}
       />
       <div className="relative flex items-center justify-between px-6 py-5">
-        <VyntaBrand size={34} textClassName="text-foreground" />
+        <VyntaBrand size={34} markSrc="/logoaa.png" textClassName="text-white" />
       </div>
 
       <div className="mx-auto flex w-full max-w-md gap-2 px-6">
@@ -469,6 +513,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
                 <p className="mt-2 text-xs text-muted">
                   Dit kun je later altijd aanpassen via Instellingen.
                 </p>
+                {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
               </div>
             )}
           </motion.div>
