@@ -13,7 +13,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-5 py-5">
+      <div className="messages-list-heading px-5 py-5">
         <h1 className="text-2xl font-bold tracking-tight">Berichten</h1>
       </div>
       <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">

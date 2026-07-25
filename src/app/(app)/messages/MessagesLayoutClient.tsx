@@ -16,7 +16,7 @@ export function MessagesLayoutClient({
   const inConversation = pathname !== "/messages";
 
   return (
-    <div className="fixed inset-x-0 bottom-16 top-14 z-10 flex bg-background lg:bottom-0 lg:left-[260px] lg:top-0">
+    <div className="messages-shell fixed inset-x-0 bottom-16 top-14 z-10 flex bg-background lg:bottom-0 lg:left-[260px] lg:top-0">
       <div
         className={cn(
           "w-full shrink-0 overflow-y-auto border-r border-border bg-surface lg:block lg:w-[360px]",

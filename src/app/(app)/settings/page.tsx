@@ -94,9 +94,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
+    <div className="settings-page mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
       <CompanyEditModal key={editOpen ? 1 : 0} open={editOpen} onClose={() => setEditOpen(false)} />
-      <h1 className="text-3xl font-bold tracking-tight">Instellingen</h1>
+      <h1 className="settings-page-heading text-3xl font-bold tracking-tight">Instellingen</h1>
 
       {/* Company card */}
       <Link

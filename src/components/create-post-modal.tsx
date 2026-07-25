@@ -437,7 +437,7 @@ export function CreatePostModal() {
     <AnimatePresence>
       {createOpen && (
         <motion.div
-          className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center"
+          className="create-post-overlay fixed inset-0 z-[70] flex items-end justify-center sm:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -448,7 +448,7 @@ export function CreatePostModal() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
-            className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl sm:max-w-xl sm:rounded-3xl"
+            className="create-post-sheet relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl sm:max-w-xl sm:rounded-3xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4">
@@ -461,7 +461,7 @@ export function CreatePostModal() {
               </button>
             </div>
 
-            <div className="relative flex-1 overflow-y-auto px-6 py-2">
+            <div className="relative flex-1 overflow-y-auto px-4 py-2 sm:px-6">
               {/* Type picker */}
               <div
                 className="flex w-full min-w-0 flex-wrap gap-2 pb-2 box-border"
@@ -535,7 +535,7 @@ export function CreatePostModal() {
               </div>
 
               {/* Optional details */}
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
@@ -776,7 +776,7 @@ export function CreatePostModal() {
             )}
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-4">
+            <div className="create-post-footer flex items-center justify-between gap-3 border-t border-border px-4 py-4 sm:px-6">
               <p className="text-xs text-muted">
                 Zichtbaar in {displayedSelected.length} {displayedSelected.length === 1 ? "netwerk" : "netwerken"}
               </p>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Building2, Globe, Map, MapPin } from "lucide-react";
+import { ArrowRight, Check, Building2, Globe, Map, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { signUp, signUpWithGoogle, joinNetworks } from "@/lib/actions";
@@ -184,7 +185,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
 
   return (
     <div
-      className="dark relative flex min-h-screen flex-col bg-background text-foreground"
+      className="native-onboarding dark relative flex min-h-screen flex-col bg-background text-foreground"
       onMouseMove={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         e.currentTarget.style.setProperty("--x", `${e.clientX - rect.left}px`);
@@ -198,11 +199,17 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
             "radial-gradient(600px circle at var(--x, 50%) var(--y, 50%), rgba(255,90,60,0.12), transparent 40%)",
         }}
       />
-      <div className="relative flex items-center justify-between px-6 py-5">
+      <div className="native-onboarding__header relative flex items-center justify-between px-6 py-5">
         <VyntaBrand size={34} markSrc="/logoaa.png" textClassName="text-white" />
+        <div className="flex items-center gap-3">
+          <span className="native-onboarding__step-label">Stap {step + 1} van 6</span>
+          <Link href={step === 0 ? "/" : "/auth"} className="native-onboarding__close" aria-label="Aanmelden sluiten">
+            <X size={18} />
+          </Link>
+        </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md gap-2 px-6">
+      <div className="native-onboarding__progress mx-auto flex w-full max-w-md gap-2 px-6">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
@@ -214,7 +221,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
         ))}
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-6 py-8">
+      <div className="native-onboarding__content flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 py-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -520,13 +527,13 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
         </AnimatePresence>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md gap-3 px-6 pb-10">
+      <div className="native-onboarding__actions mx-auto flex w-full max-w-md gap-3 px-6 pb-10">
         {step > 0 && (
           <Button
             onClick={() => setStep((s) => s - 1)}
             size="lg"
             variant="outline"
-            className="flex-1"
+            className="native-onboarding__back-action"
           >
             Terug
           </Button>
@@ -535,7 +542,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
           onClick={next}
           size="lg"
           disabled={!canNext || loading}
-          className={step > 0 ? "flex-1" : "w-full"}
+          className={step > 0 ? "native-onboarding__primary-action min-w-0 flex-1 px-3" : "w-full"}
           variant="accent"
         >
           {step === 3 ? (loading ? "Bezig…" : "Account aanmaken") : step === 5 ? (loading ? "Bezig…" : "Klaar met instellen") : step === 4 ? (loading ? "Bezig…" : "Start op Vynta") : "Doorgaan"}

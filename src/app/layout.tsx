@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NativeAppProvider } from "@/components/native-app-provider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -37,6 +38,17 @@ const themeScript = `
   try {
     var t = localStorage.getItem('vynta-theme');
     if (t !== 'light') document.documentElement.classList.add('dark');
+    var c = window.Capacitor;
+    var l = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+    var q = new URLSearchParams(location.search).get('app-preview');
+    if (l && q === '1') sessionStorage.setItem('vynta-app-preview', '1');
+    if (l && q === '0') sessionStorage.removeItem('vynta-app-preview');
+    var p = l && (q === '1' || sessionStorage.getItem('vynta-app-preview') === '1');
+    if (p || (c && typeof c.isNativePlatform === 'function' && c.isNativePlatform())) {
+      document.documentElement.classList.add('native-app');
+      document.documentElement.dataset.platform =
+        p ? 'preview' : (c && typeof c.getPlatform === 'function' ? c.getPlatform() : 'native');
+    }
   } catch (e) {}
 })();
 `;
@@ -53,7 +65,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <NativeAppProvider>{children}</NativeAppProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
