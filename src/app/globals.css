@@ -917,8 +917,7 @@ input:-webkit-autofill:active {
 }
 
 .native-app [data-tour-id="vynta-assistant"] {
-  right: 12px !important;
-  bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+  display: none !important;
 }
 
 .native-app [data-tour-id="vynta-assistant"] .vynta-breathe {

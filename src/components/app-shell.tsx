@@ -17,6 +17,7 @@ import {
   Bookmark,
   Target,
   ShieldCheck,
+  CircleHelp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
@@ -163,6 +164,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         <div className="flex items-center gap-1">
+          <Link
+            href="/help"
+            className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            aria-label="Hulp"
+          >
+            <CircleHelp size={20} />
+          </Link>
           {canManagePlatform && (
             <Link
               href="/owner"
