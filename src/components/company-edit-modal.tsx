@@ -119,7 +119,7 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Telefoon">
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="06…" />
                 </Field>
@@ -132,7 +132,7 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
                 <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} placeholder="Straat en huisnummer" />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Postcode">
                   <input value={postcode} onChange={(e) => setPostcode(e.target.value)} className={inputClass} placeholder="1234 AB" />
                 </Field>
@@ -154,7 +154,7 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
                 </select>
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="KVK (optioneel)">
                   <input value={kvkNumber} onChange={(e) => setKvkNumber(e.target.value)} className={inputClass} placeholder="KVK-nummer" />
                 </Field>

@@ -27,6 +27,7 @@ import { SidebarBrandBackup } from "./sidebar-brand-backup";
 import { ThemedLogo } from "./themed-logo";
 import { VyntaAssistant } from "./help/vynta-assistant";
 import { ProductTour } from "./help/product-tour";
+import { VyntaMark } from "./vynta-brand";
 
 const NAV = [
   { href: "/feed", label: "Feed", icon: Home, tourId: "feed" },
@@ -35,6 +36,25 @@ const NAV = [
   { href: "/opportunities", label: "Kansen", icon: Target, tourId: "opportunities" },
   { href: "/messages", label: "Berichten", icon: MessageSquare, tourId: "messages" },
 ];
+
+const MOBILE_NAV = [
+  NAV[0],
+  NAV[1],
+  NAV[3],
+  NAV[4],
+];
+
+function mobileTitle(pathname: string) {
+  if (pathname.startsWith("/search")) return "Ontdekken";
+  if (pathname.startsWith("/opportunities")) return "Kansen";
+  if (pathname.startsWith("/messages")) return "Berichten";
+  if (pathname.startsWith("/notifications")) return "Meldingen";
+  if (pathname.startsWith("/networks")) return "Netwerken";
+  if (pathname.startsWith("/settings")) return "Instellingen";
+  if (pathname.startsWith("/company")) return "Bedrijfsprofiel";
+  if (pathname.startsWith("/owner")) return "Owner Center";
+  return "Vandaag";
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -134,9 +154,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile header */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-xl lg:hidden">
-        <Link href="/feed" className="flex items-center">
-          <Logo height={30} />
+      <header className="mobile-app-header fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-xl lg:hidden">
+        <Link href="/feed" className="flex min-w-0 items-center gap-2.5" aria-label="Naar je feed">
+          <VyntaMark size={31} src={resolved === "dark" ? "/logoaa.png" : "/logo.png"} />
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold leading-none">{mobileTitle(pathname)}</p>
+            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-subtle">Vynta</p>
+          </div>
         </Link>
         <div className="flex items-center gap-1">
           {canManagePlatform && (
@@ -166,24 +190,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="min-h-screen pt-14 pb-20 lg:pb-0 lg:pl-[260px]">
+      <main className="app-main min-h-screen pt-14 pb-20 lg:pb-0 lg:pl-[260px]">
         {children}
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-surface px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {NAV.slice(0, 2).map((item) => (
+      <nav className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-border bg-surface/95 px-1 backdrop-blur-xl lg:hidden" aria-label="Hoofdnavigatie">
+        {MOBILE_NAV.slice(0, 2).map((item) => (
           <BottomItem key={item.href} item={item} active={isActive(item.href)} badge={item.href === "/messages" ? unreadMessages : item.href === "/opportunities" ? unreadOpportunities : 0} />
         ))}
         <button
           onClick={() => { setCreateType(null); setCreateOpen(true); }}
           data-tour-id="create-post"
-          className="grid h-12 w-12 place-items-center rounded-full bg-foreground text-background shadow-lg press shimmer"
+          className="mobile-tab-create press"
           aria-label="Plaats bericht"
         >
-          <Plus size={22} strokeWidth={2.5} />
+          <span><Plus size={21} strokeWidth={2.6} /></span>
+          <small>Plaatsen</small>
         </button>
-        {NAV.slice(2).map((item) => (
+        {MOBILE_NAV.slice(2).map((item) => (
           <BottomItem key={item.href} item={item} active={isActive(item.href)} badge={item.href === "/messages" ? unreadMessages : item.href === "/opportunities" ? unreadOpportunities : 0} />
         ))}
       </nav>
@@ -252,9 +277,11 @@ function BottomItem({ item, active, badge }: { item: typeof NAV[0]; active: bool
     <Link
       href={item.href}
       className={cn(
-        "relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition-colors",
+        "mobile-tab-item relative flex min-w-0 flex-col items-center justify-center gap-1 py-2 text-[10px] font-semibold transition-colors",
         active ? "text-foreground" : "text-muted"
       )}
+      aria-label={item.label}
+      aria-current={active ? "page" : undefined}
     >
       <span className="relative grid h-7 w-7 place-items-center">
         <item.icon size={22} strokeWidth={active ? 2.4 : 2} />
@@ -264,6 +291,7 @@ function BottomItem({ item, active, badge }: { item: typeof NAV[0]; active: bool
           </span>
         )}
       </span>
+      <span className="truncate">{item.label}</span>
     </Link>
   );
 }

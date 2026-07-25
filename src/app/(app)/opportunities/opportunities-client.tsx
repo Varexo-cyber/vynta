@@ -152,8 +152,8 @@ export function OpportunitiesClient({
     : "Nieuwe zakelijke kansen verschijnen hier zodra bedrijven ze plaatsen.";
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-9 xl:px-8">
-      <header className="mb-7 flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <main className="opportunities-page mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-9 xl:px-8">
+      <header className="opportunities-heading mb-7 flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand">Zakelijke kansen</p>
           <h1 className="text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">Kansen</h1>

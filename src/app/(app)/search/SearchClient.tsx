@@ -37,8 +37,8 @@ export function SearchClient({ posts }: { posts: Post[] }) {
   }, [query, posts, companyById]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
-      <h1 className="mb-5 text-3xl font-bold tracking-tight">Zoeken</h1>
+    <div className="search-page mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
+      <h1 className="search-page-heading mb-5 text-3xl font-bold tracking-tight">Ontdekken</h1>
 
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 focus-within:border-border-strong">
         <SearchIcon size={20} className="text-muted" />
@@ -84,7 +84,7 @@ export function SearchClient({ posts }: { posts: Post[] }) {
               href={`/company/${c.id}`}
               className="flex items-center gap-4 border-t border-border py-4 transition-colors first:border-t-0 hover:bg-surface-2/50"
             >
-              <CompanyAvatar name={c.name} color={c.logoColor} size={56} />
+              <CompanyAvatar name={c.name} color={c.logoColor} logoUrl={c.logoUrl} website={c.website} size={56} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="truncate text-base font-semibold">{c.name}</span>

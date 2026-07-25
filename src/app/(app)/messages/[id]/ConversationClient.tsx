@@ -790,9 +790,9 @@ export function ConversationClient({
   const messageGroups = groupMessages(messages);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="conversation-screen flex h-full flex-col">
       {/* Header */}
-      <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-3">
+      <div className="conversation-header flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-3">
         <Link href="/messages" className="grid h-9 w-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 lg:hidden press">
           <ArrowLeft size={18} />
         </Link>
@@ -1100,7 +1100,7 @@ export function ConversationClient({
           <p className="text-sm text-muted">Je kunt geen berichten versturen aan een geblokkeerd contact.</p>
         </div>
       ) : (
-      <div className="shrink-0 border-t border-border bg-surface p-3">
+      <div className="conversation-composer shrink-0 border-t border-border bg-surface p-3">
         {recording.state === "idle" && pendingAttachments.length > 0 && (
           <div className="mb-2 flex gap-2 overflow-x-auto rounded-xl border border-border bg-background p-2">
             {pendingAttachments.map((a, idx) => (
