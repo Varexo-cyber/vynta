@@ -46,6 +46,18 @@ export function ProductTour() {
     const advanceAfterAction = () => {
       if (!currentTourStep.waitForAction || advanced) return;
       advanced = true;
+      if (activeTour) {
+        try {
+          sessionStorage.setItem(
+            "vynta-active-tour",
+            JSON.stringify({
+              tourId: activeTour.id,
+              step: Math.min(tourStepIndex + 1, activeTour.steps.length - 1),
+              guided: guidedModeActive,
+            }),
+          );
+        } catch {}
+      }
       // Let the clicked link/button finish its own React/Next.js handler first.
       // Advancing synchronously during capture can unmount the target before
       // the navigation handler receives the event.
@@ -95,7 +107,14 @@ export function ProductTour() {
         pollRef.current = null;
       }
     };
-  }, [currentTourStep, getVisibleTarget, nextTourStep]);
+  }, [
+    activeTour,
+    currentTourStep,
+    getVisibleTarget,
+    guidedModeActive,
+    nextTourStep,
+    tourStepIndex,
+  ]);
 
   const handleNext = useCallback(() => {
     if (tourStepIndex >= (activeTour?.steps.length ?? 1) - 1) {
