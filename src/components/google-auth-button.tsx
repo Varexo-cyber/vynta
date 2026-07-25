@@ -18,6 +18,34 @@ const GOOGLE_ERRORS: Record<string, string> = {
 
 let initializedClientId: string | null = null;
 
+class GoogleAuthTimeoutError extends Error {}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new GoogleAuthTimeoutError()), timeoutMs);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 20_000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 interface GoogleAuthButtonProps {
   className?: string;
   onError?: (message: string) => void;
@@ -35,7 +63,7 @@ export function GoogleAuthButton({ className, onError }: GoogleAuthButtonProps) 
 
     setLoading(true);
     try {
-      const configurationResponse = await fetch("/api/auth/google/native/config", {
+      const configurationResponse = await fetchWithTimeout("/api/auth/google/native/config", {
         credentials: "same-origin",
         cache: "no-store",
       });
@@ -50,11 +78,14 @@ export function GoogleAuthButton({ className, onError }: GoogleAuthButtonProps) 
       }
 
       if (initializedClientId !== configuration.clientId) {
-        await GoogleSignIn.initialize({ clientId: configuration.clientId });
+        await withTimeout(GoogleSignIn.initialize({ clientId: configuration.clientId }), 20_000);
         initializedClientId = configuration.clientId;
       }
-      const identity = await GoogleSignIn.signIn({ nonce: configuration.nonce });
-      const completionResponse = await fetch("/api/auth/google/native", {
+      const identity = await withTimeout(
+        GoogleSignIn.signIn({ nonce: configuration.nonce }),
+        90_000
+      );
+      const completionResponse = await fetchWithTimeout("/api/auth/google/native", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
@@ -71,7 +102,14 @@ export function GoogleAuthButton({ className, onError }: GoogleAuthButtonProps) 
       window.location.assign(completion.next);
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "google_failed";
-      onError?.(GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_failed);
+      const timedOut =
+        cause instanceof GoogleAuthTimeoutError ||
+        (cause instanceof DOMException && cause.name === "AbortError");
+      onError?.(
+        timedOut
+          ? "Google reageert niet op tijd. Sluit het Google-venster en probeer het opnieuw."
+          : GOOGLE_ERRORS[code] || GOOGLE_ERRORS.google_failed
+      );
       setLoading(false);
     }
   };

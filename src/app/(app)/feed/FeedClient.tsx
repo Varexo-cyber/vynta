@@ -66,12 +66,12 @@ export function FeedClient({ posts }: { posts: Post[] }) {
   }, [posts, filter, me, myNetworkIds, companyById, followingIds]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] px-4 pb-32 pt-5 lg:pt-8">
+    <div className="feed-page mx-auto flex w-full max-w-[1320px] px-4 pb-32 pt-5 lg:pt-8">
       {/* Main feed */}
       <div className="min-w-0 flex-1">
         <div className="mx-auto w-full max-w-[800px]">
           {/* Header */}
-          <div className="mb-6">
+          <div className="feed-page-heading mb-6">
             <h1 className="text-[28px] font-bold tracking-tight">
               {greeting()}, {me.name}
             </h1>
@@ -83,12 +83,12 @@ export function FeedClient({ posts }: { posts: Post[] }) {
 
           {/* Network stories */}
           {myNetworks.length > 0 && (
-            <div className="no-scrollbar -mx-4 mb-6 flex gap-3 overflow-x-auto px-4 pb-2">
+            <div className="network-story-strip no-scrollbar -mx-4 mb-6 flex gap-3 overflow-x-auto px-4 pb-2">
               <button
                 onClick={() => setCreateOpen(true)}
                 className="flex shrink-0 flex-col items-center gap-2"
               >
-                <span className="grid h-[80px] w-[80px] place-items-center rounded-full border-2 border-dashed border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-foreground">
+                <span className="grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-foreground sm:h-[80px] sm:w-[80px]">
                   <span className="text-3xl">+</span>
                 </span>
                 <span className="max-w-[80px] truncate text-xs font-medium">Plaatsen</span>
@@ -101,7 +101,7 @@ export function FeedClient({ posts }: { posts: Post[] }) {
                     href={`/networks/${n.id}`}
                     className="group flex shrink-0 flex-col items-center gap-2"
                   >
-                    <span className="grid h-[80px] w-[80px] place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30">
+                    <span className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30 sm:h-[80px] sm:w-[80px]">
                       <Icon size={28} strokeWidth={1.5} className="transition-colors group-hover:text-brand" />
                     </span>
                     <span className="max-w-[80px] truncate text-xs font-medium text-muted transition-colors group-hover:text-foreground">{n.name}</span>
@@ -113,7 +113,7 @@ export function FeedClient({ posts }: { posts: Post[] }) {
                   href="/networks"
                   className="group flex shrink-0 flex-col items-center gap-2"
                 >
-                  <span className="grid h-[80px] w-[80px] place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30">
+                  <span className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30 sm:h-[80px] sm:w-[80px]">
                     <span className="text-sm font-semibold">+{myNetworks.length - 6}</span>
                   </span>
                   <span className="max-w-[80px] truncate text-xs font-medium text-muted transition-colors group-hover:text-foreground">Meer netwerken</span>
@@ -123,7 +123,7 @@ export function FeedClient({ posts }: { posts: Post[] }) {
           )}
 
           {/* Composer */}
-          <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div className="feed-composer mb-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
             <button
               onClick={() => setCreateOpen(true)}
               className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-surface-2"
@@ -137,12 +137,12 @@ export function FeedClient({ posts }: { posts: Post[] }) {
               />
               <span className="text-[17px] text-muted">Deel iets met je netwerk…</span>
             </button>
-            <div className="no-scrollbar flex items-center gap-1 border-t border-border px-2 py-2">
+            <div className="no-scrollbar flex items-center gap-1 overflow-x-auto border-t border-border px-2 py-2">
               {COMPOSER_ACTIONS.map((action) => (
                 <button
                   key={action.key}
                   onClick={() => setCreateOpen(true)}
-                  className="flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+                  className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-4"
                 >
                   <action.icon size={18} />
                   {action.label}
