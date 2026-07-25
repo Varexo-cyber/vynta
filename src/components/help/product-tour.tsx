@@ -46,7 +46,10 @@ export function ProductTour() {
     const advanceAfterAction = () => {
       if (!currentTourStep.waitForAction || advanced) return;
       advanced = true;
-      nextTourStep();
+      // Let the clicked link/button finish its own React/Next.js handler first.
+      // Advancing synchronously during capture can unmount the target before
+      // the navigation handler receives the event.
+      window.setTimeout(nextTourStep, 0);
     };
 
     const observeTarget = (target: HTMLElement | null) => {
