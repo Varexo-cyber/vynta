@@ -17,6 +17,7 @@
     "generate:assets": "tsx scripts/make-assets.ts"
   },
   "dependencies": {
+    "@capacitor/geolocation": "^8.0.0",
     "@capawesome/capacitor-google-sign-in": "^0.1.2",
     "@netlify/blobs": "^10.7.9",
     "bcryptjs": "^3.0.3",
