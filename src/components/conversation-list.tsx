@@ -14,7 +14,7 @@ export function ConversationList({ conversations }: { conversations: Conversatio
 
   return (
     <div className="flex h-full flex-col">
-      <div className="messages-list-heading flex items-center justify-between gap-3 px-5 py-5">
+      <div className="messages-list-heading hidden items-center justify-between gap-3 px-5 py-5 lg:flex">
         <h1 className="text-2xl font-bold tracking-tight">Berichten</h1>
         <Link
           href="/search?intent=message"
