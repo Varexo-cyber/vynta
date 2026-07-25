@@ -75,13 +75,18 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="company-edit-title"
             className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl sm:max-w-xl sm:rounded-3xl"
           >
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-lg font-semibold tracking-tight">Bedrijfsgegevens</h2>
+              <h2 id="company-edit-title" className="text-lg font-semibold tracking-tight">Bedrijfsgegevens</h2>
               <button
+                type="button"
                 onClick={onClose}
-                className="grid h-9 w-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2"
+                className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2"
+                aria-label="Bedrijfsgegevens sluiten"
               >
                 <X size={18} />
               </button>
@@ -109,7 +114,7 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
                 </div>
               </Field>
 
-              <Field label="Omschrijving">
+              <Field label="Omschrijving" tourId="company-description">
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -119,7 +124,7 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
                 />
               </Field>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-tour-id="company-contact">
                 <Field label="Telefoon">
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="06…" />
                 </Field>
@@ -177,9 +182,17 @@ export function CompanyEditModal({ open, onClose }: { open: boolean; onClose: ()
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  tourId,
+}: {
+  label: string;
+  children: React.ReactNode;
+  tourId?: string;
+}) {
   return (
-    <div>
+    <div data-tour-id={tourId}>
       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">{label}</label>
       {children}
     </div>

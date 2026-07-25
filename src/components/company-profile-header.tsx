@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Camera, Phone, Mail, MessageCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useApp } from "./app-store";
-import { toggleFollow } from "@/lib/actions";
+import { startDirectConversation, toggleFollow } from "@/lib/actions";
 import { CompanyAvatar, VerifiedBadge } from "./ui/primitives";
 import { CropModal, type CropData } from "./crop-modal";
 import { cn, formatNumber } from "@/lib/utils";
@@ -31,6 +31,7 @@ export function CompanyProfileHeader({
   const [logoUrl, setLogoUrl] = useState(company.logoUrl);
   const [bannerUrl, setBannerUrl] = useState(company.bannerUrl);
   const [saving, setSaving] = useState(false);
+  const [startingConversation, setStartingConversation] = useState(false);
 
   const stats = [
     { label: "Volgers", value: formatNumber(company.followers) },
@@ -43,6 +44,18 @@ export function CompanyProfileHeader({
     const res = await toggleFollow(company.id);
     if (!res.ok) setFollowing((v) => !v);
     router.refresh();
+  };
+
+  const onMessage = async () => {
+    if (startingConversation) return;
+    setStartingConversation(true);
+    const result = await startDirectConversation(company.id);
+    setStartingConversation(false);
+    if (result.ok && result.conversationId) {
+      router.push(`/messages/${result.conversationId}`);
+      return;
+    }
+    toast("Gesprek starten mislukt", result.error);
   };
 
   const handleFileSelect = (type: "logo" | "banner") => {
@@ -214,6 +227,7 @@ export function CompanyProfileHeader({
               {isMe && (
                 <button
                   onClick={() => handleFileSelect("logo")}
+                  data-tour-id="company-logo-upload"
                   className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-foreground text-background shadow-lg transition-transform hover:scale-110"
                   aria-label="Bedrijfslogo wijzigen"
                 >
@@ -254,7 +268,8 @@ export function CompanyProfileHeader({
           <div className="mt-4 flex flex-wrap gap-2">
             {isMe ? (
               <button
-                onClick={() => router.push("/settings")}
+                onClick={() => router.push("/settings?edit=company")}
+                data-tour-id="company-edit"
                 className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
               >
                 Profiel bewerken
@@ -263,6 +278,7 @@ export function CompanyProfileHeader({
               <>
                 <button
                   onClick={onFollow}
+                  data-tour-id="company-follow"
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
                     following
@@ -273,10 +289,12 @@ export function CompanyProfileHeader({
                   {following ? "Volgend" : "Volgen"}
                 </button>
                 <button
-                  onClick={() => router.push("/messages")}
+                  onClick={onMessage}
+                  disabled={startingConversation}
+                  data-tour-id="company-message"
                   className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
                 >
-                  <MessageCircle size={16} /> Bericht
+                  <MessageCircle size={16} /> {startingConversation ? "Openen…" : "Bericht"}
                 </button>
               </>
             )}

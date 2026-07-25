@@ -99,6 +99,7 @@ function NetworkCardLarge({
           ) : (
             <button
               onClick={onToggle}
+              data-tour-id="network-join"
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold transition-all press",
                 status === "followed"

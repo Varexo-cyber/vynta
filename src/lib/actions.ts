@@ -898,6 +898,39 @@ export async function updatePost(
 
 
 /* ----------------------------- messaging ----------------------------- */
+export async function startDirectConversation(
+  targetCompanyId: string
+): Promise<Result & { conversationId?: string }> {
+  const companyId = await requireCompanyId();
+  if (!targetCompanyId || targetCompanyId === companyId) {
+    return { ok: false, error: "Kies een ander bedrijf." };
+  }
+  const target = await sql`SELECT id FROM companies WHERE id = ${targetCompanyId} LIMIT 1`;
+  if (!target.length) return { ok: false, error: "Bedrijf niet gevonden." };
+
+  const existing = await sql`
+    SELECT conversation.id
+    FROM conversations conversation
+    JOIN conversation_participants mine
+      ON mine.conversation_id = conversation.id AND mine.company_id = ${companyId}
+    JOIN conversation_participants other
+      ON other.conversation_id = conversation.id AND other.company_id = ${targetCompanyId}
+    ORDER BY conversation.created_at DESC
+    LIMIT 1
+  `;
+  let conversationId = existing[0]?.id as string | undefined;
+  if (!conversationId) {
+    const created = await sql`INSERT INTO conversations DEFAULT VALUES RETURNING id`;
+    conversationId = created[0].id as string;
+    await sql`
+      INSERT INTO conversation_participants (conversation_id, company_id)
+      VALUES (${conversationId}, ${companyId}), (${conversationId}, ${targetCompanyId})
+    `;
+  }
+  revalidatePath("/messages");
+  return { ok: true, conversationId };
+}
+
 export async function respondToNeed(needId: string): Promise<{ ok: boolean; conversationId?: string; error?: string }> {
   const companyId = await requireCompanyId();
   const needRows = await sql`SELECT company_id, body FROM needs WHERE id = ${needId} LIMIT 1`;

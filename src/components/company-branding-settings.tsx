@@ -143,11 +143,11 @@ export function CompanyBrandingSettings() {
   const aspectRatio = cropType === "logo" ? 1 : 16 / 5;
 
   return (
-    <div className="mt-6">
+    <div id="bedrijfsuitstraling" className="mt-6 scroll-mt-24">
       <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted">Bedrijfsuitstraling</p>
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         {/* Logo section */}
-        <div className="border-b border-border p-4">
+        <div className="border-b border-border p-4" data-tour-id="company-logo-upload">
           <div className="flex items-center gap-4">
             <CompanyAvatar
               name={me.name}

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search as SearchIcon, MapPin } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Search as SearchIcon, MapPin, MessageCircle } from "lucide-react";
 import { useApp } from "@/components/app-store";
 import { PostCard } from "@/components/need-card";
 import { CompanyAvatar, VerifiedBadge, Pill } from "@/components/ui/primitives";
@@ -12,9 +13,11 @@ const TRENDING = ["Verpakkingen", "Olijfolie", "Vrachtcapaciteit", "CNC-verspani
 
 export function SearchClient({ posts }: { posts: Post[] }) {
   const { companies, companyById } = useApp();
+  const searchParams = useSearchParams();
   const companyList = useMemo(() => Object.values(companies), [companies]);
   const [q, setQ] = useState("");
   const [mode, setMode] = useState<"companies" | "posts">("companies");
+  const startingConversation = searchParams.get("intent") === "message";
 
   const query = q.trim().toLowerCase();
 
@@ -40,10 +43,25 @@ export function SearchClient({ posts }: { posts: Post[] }) {
     <div className="search-page mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
       <h1 className="search-page-heading mb-5 text-3xl font-bold tracking-tight">Ontdekken</h1>
 
+      {startingConversation && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-foreground">
+            <MessageCircle size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold">Met wie wil je in gesprek?</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-muted">
+              Zoek een bedrijf, open het profiel en kies Bericht.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 focus-within:border-border-strong">
         <SearchIcon size={20} className="text-muted" />
         <input
           autoFocus
+          data-tour-id="search-query"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Bedrijven, producten, sectoren, plaatsen…"
@@ -82,6 +100,7 @@ export function SearchClient({ posts }: { posts: Post[] }) {
             <Link
               key={c.id}
               href={`/company/${c.id}`}
+              data-tour-id="company-result"
               className="flex items-center gap-4 border-t border-border py-4 transition-colors first:border-t-0 hover:bg-surface-2/50"
             >
               <CompanyAvatar name={c.name} color={c.logoColor} logoUrl={c.logoUrl} website={c.website} size={56} />

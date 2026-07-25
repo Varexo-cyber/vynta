@@ -17,7 +17,9 @@ writeFileSync(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f6f6f4" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f4f1" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050505" />
     <title>Vynta</title>
     <style>
       * { box-sizing: border-box; }
@@ -26,9 +28,19 @@ writeFileSync(
         display: grid;
         place-items: center;
         height: 100vh;
-        background: #f6f6f4;
-        color: #111111;
+        background: #f6f4f1;
+        color: #171717;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #050505;
+          color: #f6f5f3;
+        }
+        .loader {
+          border-color: rgba(246,245,243,0.16);
+          border-top-color: #f6f5f3;
+        }
       }
       .loader {
         width: 40px;

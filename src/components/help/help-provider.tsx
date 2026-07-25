@@ -313,6 +313,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
   const startTour = useCallback((tourId: string) => {
     const tour = getTour(tourId);
     if (!tour) return;
+    setGuidedModeActive(false);
     setActiveTour(tour);
     setTourStepIndex(0);
     try { updateTourProgress(tourId, 0); } catch {}
@@ -325,6 +326,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
       setTourStepIndex(next);
       try { updateTourProgress(activeTour.id, next); } catch {}
     } else {
+      setGuidedModeActive(false);
       setActiveTour(null);
       setTourStepIndex(0);
       try { completeTour(activeTour.id); } catch {}
@@ -343,6 +345,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
       } else {
         try { skipTour(activeTour.id); } catch {}
       }
+      setGuidedModeActive(false);
       setActiveTour(null);
       setTourStepIndex(0);
     },

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   Bell,
@@ -42,13 +42,16 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { me } = useApp();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     assistantEnabled, setAssistantEnabled,
     productTipsEnabled, setProductTipsEnabled,
     experienceLevel, setExperienceLevel,
     startTour,
   } = useHelp();
-  const [editOpen, setEditOpen] = useState(false);
+  const [manualEditOpen, setManualEditOpen] = useState(false);
+  const editRequested = searchParams.get("edit") === "company";
+  const editOpen = editRequested || manualEditOpen;
   const [draftCount, setDraftCount] = useState(0);
   const [memories, setMemories] = useState<{ id: string; memoryKey: string; memoryValue: string }[]>([]);
 
@@ -56,6 +59,11 @@ export default function SettingsPage() {
     getDrafts().then((drafts) => setDraftCount(drafts.length));
     listMemories().then(setMemories).catch(() => {});
   }, []);
+
+  const closeCompanyEdit = () => {
+    setManualEditOpen(false);
+    if (editRequested) router.replace("/settings", { scroll: false });
+  };
 
   const handleExport = async () => {
     try {
@@ -95,7 +103,7 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-page mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
-      <CompanyEditModal key={editOpen ? 1 : 0} open={editOpen} onClose={() => setEditOpen(false)} />
+      <CompanyEditModal key={editOpen ? 1 : 0} open={editOpen} onClose={closeCompanyEdit} />
       <h1 className="settings-page-heading text-3xl font-bold tracking-tight">Instellingen</h1>
 
       {/* Company card */}
@@ -140,7 +148,7 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Account">
-        <Row icon={Building2} label="Bedrijfsgegevens" hint="Bewerken" onClick={() => setEditOpen(true)} />
+        <Row icon={Building2} label="Bedrijfsgegevens" hint="Bewerken" onClick={() => setManualEditOpen(true)} />
         <Row
           icon={FileText}
           label="Mijn concepten"

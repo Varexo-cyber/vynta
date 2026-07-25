@@ -30,14 +30,19 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f6f6f4",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#050505" },
+  ],
 };
 
 const themeScript = `
 (function() {
   try {
     var t = localStorage.getItem('vynta-theme');
-    if (t !== 'light') document.documentElement.classList.add('dark');
+    var d = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', d);
+    document.documentElement.style.colorScheme = d ? 'dark' : 'light';
     var c = window.Capacitor;
     var l = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
     var q = new URLSearchParams(location.search).get('app-preview');
