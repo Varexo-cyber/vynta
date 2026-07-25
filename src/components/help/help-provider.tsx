@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import type { TourDef, TourStep } from "@/lib/help-tours";
-import { PRODUCT_TOUR, GUIDED_TOURS, getTour } from "@/lib/help-tours";
+import { PRODUCT_TOUR, getTour } from "@/lib/help-tours";
 import { CHECKLIST_TASKS, getChecklistProgress } from "@/lib/help-checklist";
 import type { HelpActionId } from "@/lib/help-actions";
 import { helpActions, resolveActionRoute } from "@/lib/help-actions";
@@ -32,7 +32,6 @@ import {
   deleteConversation,
   searchConversations,
   saveMessage,
-  updateMessageFeedback,
   updateConversationSummary,
   processAssistantQueryV2,
   type AssistantConversation,
@@ -132,6 +131,22 @@ interface HelpContextValue {
 }
 
 const HelpContext = createContext<HelpContextValue | null>(null);
+const ACTIVE_TOUR_SESSION_KEY = "vynta-active-tour";
+
+function saveActiveTourSession(tourId: string, step: number, guided: boolean) {
+  try {
+    sessionStorage.setItem(
+      ACTIVE_TOUR_SESSION_KEY,
+      JSON.stringify({ tourId, step, guided }),
+    );
+  } catch {}
+}
+
+function clearActiveTourSession() {
+  try {
+    sessionStorage.removeItem(ACTIVE_TOUR_SESSION_KEY);
+  } catch {}
+}
 
 export function HelpProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -220,6 +235,35 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
       loadConversations();
     });
   }, [loadOnboarding, loadChecklist, loadPreferences, loadConversations]);
+
+  useEffect(() => {
+    const restoreTimer = window.setTimeout(() => {
+      try {
+        const raw = sessionStorage.getItem(ACTIVE_TOUR_SESSION_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw) as {
+          tourId?: string;
+          step?: number;
+          guided?: boolean;
+        };
+        const tour = saved.tourId ? getTour(saved.tourId) : undefined;
+        if (!tour) {
+          clearActiveTourSession();
+          return;
+        }
+        const safeStep = Math.max(
+          0,
+          Math.min(Number(saved.step) || 0, tour.steps.length - 1),
+        );
+        setActiveTour(tour);
+        setTourStepIndex(safeStep);
+        setGuidedModeActive(Boolean(saved.guided));
+      } catch {
+        clearActiveTourSession();
+      }
+    }, 0);
+    return () => window.clearTimeout(restoreTimer);
+  }, []);
 
   /* Auto-detect checklist */
   const checklistAutoDetected = useMemo(() => {
@@ -313,6 +357,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
   const startTour = useCallback((tourId: string) => {
     const tour = getTour(tourId);
     if (!tour) return;
+    saveActiveTourSession(tourId, 0, false);
     setGuidedModeActive(false);
     setActiveTour(tour);
     setTourStepIndex(0);
@@ -323,19 +368,24 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
     if (!activeTour) return;
     if (tourStepIndex < activeTour.steps.length - 1) {
       const next = tourStepIndex + 1;
+      saveActiveTourSession(activeTour.id, next, guidedModeActive);
       setTourStepIndex(next);
       try { updateTourProgress(activeTour.id, next); } catch {}
     } else {
+      clearActiveTourSession();
       setGuidedModeActive(false);
       setActiveTour(null);
       setTourStepIndex(0);
       try { completeTour(activeTour.id); } catch {}
     }
-  }, [activeTour, tourStepIndex]);
+  }, [activeTour, guidedModeActive, tourStepIndex]);
 
   const prevTourStep = useCallback(() => {
-    if (tourStepIndex > 0) setTourStepIndex(tourStepIndex - 1);
-  }, [tourStepIndex]);
+    if (!activeTour || tourStepIndex <= 0) return;
+    const previous = tourStepIndex - 1;
+    saveActiveTourSession(activeTour.id, previous, guidedModeActive);
+    setTourStepIndex(previous);
+  }, [activeTour, guidedModeActive, tourStepIndex]);
 
   const endTour = useCallback(
     (completed: boolean) => {
@@ -345,6 +395,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
       } else {
         try { skipTour(activeTour.id); } catch {}
       }
+      clearActiveTourSession();
       setGuidedModeActive(false);
       setActiveTour(null);
       setTourStepIndex(0);
@@ -467,8 +518,16 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
         )
       );
       const msg = assistantMessages.find((m) => m.id === messageId);
+      const feedbackReason = [reason, correction ? `Correctie: ${correction}` : null]
+        .filter(Boolean)
+        .join(" — ") || undefined;
       try {
-        await submitHelpFeedback(msg?.articleId ?? null, msg?.text ?? "", helpful, reason);
+        await submitHelpFeedback(
+          msg?.articleId ?? null,
+          msg?.text ?? "",
+          helpful,
+          feedbackReason,
+        );
         // Also persist to assistant feedback system if we have a DB message ID
         if (currentConversationId) {
           // Find the DB message ID — we use the client-side ID for now
@@ -548,6 +607,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
     (tourId: string) => {
       const tour = getTour(tourId);
       if (!tour) return;
+      saveActiveTourSession(tourId, 0, true);
       setGuidedModeActive(true);
       setActiveTour(tour);
       setTourStepIndex(0);
@@ -558,6 +618,7 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
   );
 
   const stopGuidedMode = useCallback(() => {
+    clearActiveTourSession();
     setGuidedModeActive(false);
     setActiveTour(null);
     setTourStepIndex(0);
