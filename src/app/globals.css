@@ -895,6 +895,12 @@ input:-webkit-autofill:active {
   background: color-mix(in srgb, var(--surface) 88%, transparent);
 }
 
+.native-app .mobile-app-header button,
+.native-app .mobile-app-header > div a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 .native-app .app-main {
   padding-top: calc(58px + env(safe-area-inset-top));
   padding-bottom: calc(78px + env(safe-area-inset-bottom));
@@ -947,6 +953,10 @@ input:-webkit-autofill:active {
 .native-app .messages-shell {
   top: calc(58px + env(safe-area-inset-top));
   bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.native-app .messages-list-heading {
+  display: none;
 }
 
 .native-app .conversation-screen {
@@ -1021,6 +1031,15 @@ input:-webkit-autofill:active {
   align-items: center;
   gap: 12px;
   padding-bottom: 14px;
+}
+
+.native-app .opportunities-heading > div > p:first-child,
+.native-app .opportunities-heading h1 {
+  display: none;
+}
+
+.native-app .opportunities-heading > div > p:last-child {
+  margin-top: 0;
 }
 
 .native-app .opportunities-heading > div {
