@@ -240,8 +240,8 @@ input:-webkit-autofill:active {
   display: flex;
   min-height: 100dvh;
   flex-direction: column;
-  background: #f3f0e9;
-  color: #171714;
+  background: var(--background);
+  color: var(--foreground);
   padding:
     max(22px, env(safe-area-inset-top))
     24px
@@ -273,7 +273,7 @@ input:-webkit-autofill:active {
 .native-first-run__intro {
   max-width: 330px;
   margin: 16px auto 0;
-  color: #656159;
+  color: var(--muted);
   font-size: 15px;
   line-height: 1.52;
 }
@@ -298,21 +298,21 @@ input:-webkit-autofill:active {
 }
 
 .native-first-run__primary {
-  background: #171714;
-  color: #fff;
-  box-shadow: 0 12px 28px rgba(23, 23, 20, 0.13);
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--foreground) 13%, transparent);
 }
 
 .native-first-run__secondary {
   margin-top: 8px;
-  border: 1px solid #d4d0c7;
+  border: 1px solid var(--border);
   background: transparent;
-  color: #171714;
+  color: var(--foreground);
 }
 
 .native-first-run__actions > p {
   margin-top: 14px;
-  color: #817c73;
+  color: var(--subtle);
   font-size: 11px;
   text-align: center;
 }
@@ -337,16 +337,7 @@ input:-webkit-autofill:active {
 }
 
 .native-app .native-auth {
-  --background: #f3f0e9;
-  --surface: #fffdf9;
-  --surface-2: #e9e5dc;
-  --surface-3: #ffffff;
-  --foreground: #171714;
-  --muted: #6d685f;
-  --border: #d9d3c8;
-  --border-strong: #c9c1b5;
-  --brand: #e85d3b;
-  --brand-fg: #ffffff;
+  color-scheme: inherit;
 }
 
 .native-app .native-auth__panel {
@@ -357,7 +348,7 @@ input:-webkit-autofill:active {
     max(20px, env(safe-area-inset-top))
     22px
     max(24px, env(safe-area-inset-bottom));
-  background: #f3f0e9;
+  background: var(--background);
 }
 
 .native-app .native-auth__panel > .pointer-events-none {
@@ -377,11 +368,11 @@ input:-webkit-autofill:active {
   min-height: 40px;
   align-items: center;
   gap: 5px;
-  border: 1px solid #d9d3c8;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255,255,255,0.42);
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
   padding: 0 10px;
-  color: #777168;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 650;
 }
@@ -395,9 +386,9 @@ input:-webkit-autofill:active {
   height: 44px;
   width: 44px;
   place-items: center;
-  border: 1px solid #d9d3c8;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255,255,255,0.42);
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
   font-size: 0;
 }
 
@@ -414,7 +405,7 @@ input:-webkit-autofill:active {
   align-items: center;
   gap: 6px;
   margin-bottom: 12px;
-  color: #ff8b6d;
+  color: var(--brand);
   font-size: 10px;
   font-weight: 720;
   letter-spacing: 0.08em;
@@ -428,8 +419,8 @@ input:-webkit-autofill:active {
 
 .native-app .native-auth__content input {
   min-height: 54px;
-  border: 1px solid #d9d3c8;
-  background: #fffdf9;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .native-app .native-auth__content form button[type="submit"] {
@@ -441,7 +432,7 @@ input:-webkit-autofill:active {
   display: block;
   max-width: 300px;
   margin: 24px auto 0;
-  color: #8a847a;
+  color: var(--muted);
   font-size: 10px;
   line-height: 1.5;
   text-align: center;
@@ -481,20 +472,11 @@ input:-webkit-autofill:active {
 }
 
 .native-app .native-onboarding {
-  --background: #f3f0e9;
-  --surface: #fffdf9;
-  --surface-2: #e9e5dc;
-  --surface-3: #ffffff;
-  --foreground: #171714;
-  --muted: #6d685f;
-  --border: #d9d3c8;
-  --border-strong: #c9c1b5;
-  --brand: #e85d3b;
-  --brand-fg: #ffffff;
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
-  background: #f3f0e9;
+  background: var(--background);
+  color-scheme: inherit;
 }
 
 .native-app .native-onboarding > .pointer-events-none {
@@ -502,7 +484,7 @@ input:-webkit-autofill:active {
 }
 
 .native-app .native-onboarding .native-onboarding__brand-text {
-  color: #171714 !important;
+  color: var(--foreground) !important;
 }
 
 .native-app .native-onboarding__header {
@@ -557,8 +539,8 @@ input:-webkit-autofill:active {
 .native-app .native-onboarding__content input,
 .native-app .native-onboarding__content select {
   min-height: 52px;
-  border: 1px solid #d9d3c8;
-  background: #fffdf9;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .native-app .native-onboarding__content button {
@@ -570,8 +552,8 @@ input:-webkit-autofill:active {
   z-index: 4;
   flex: 0 0 auto;
   max-width: none;
-  border-top: 1px solid #d9d3c8;
-  background: rgba(243,240,233,0.92);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 92%, transparent);
   padding:
     14px
     20px

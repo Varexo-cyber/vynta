@@ -192,7 +192,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             )}
           </Link>
-          <Link href={`/company/${me.id}`} className="rounded-full p-0.5">
+          <Link
+            href={`/company/${me.id}`}
+            data-tour-id="company-profile"
+            className="rounded-full p-0.5"
+            aria-label="Mijn bedrijfsprofiel"
+          >
             <CompanyAvatar name={me.name} color={me.logoColor} logoUrl={me.logoUrl} website={me.website} size={32} />
           </Link>
         </div>

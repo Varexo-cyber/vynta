@@ -49,6 +49,7 @@ async function loadLogo(): Promise<Buffer> {
 
 async function main() {
   const logo = await loadLogo();
+  const appIcon = await composeAppIcon(logo, 1024, 0.72);
 
   await sharp(logo)
     .resize(180, 180, { fit: "cover" })
@@ -61,10 +62,15 @@ async function main() {
 
   // App icon: 1024x1024 PNG.
   // iOS rond af zelf af, Android gebruikt dit voor adaptieve iconen.
-  await sharp(logo)
-    .resize(1024, 1024, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  await sharp(appIcon).png().toFile(resolve(assetsDir, "icon.png"));
+  await sharp(appIcon)
+    .resize(192, 192)
     .png()
-    .toFile(resolve(assetsDir, "icon.png"));
+    .toFile(resolve(root, "public", "icon-192.png"));
+  await sharp(appIcon)
+    .resize(512, 512)
+    .png()
+    .toFile(resolve(root, "public", "icon-512.png"));
 
   // Splash screen: 2732x2732 met logo gecentreerd op ~40% van de breedte.
   const splashBg = { r: 246, g: 246, b: 244, alpha: 1 };
@@ -91,6 +97,20 @@ async function main() {
 }
 
 const androidRes = resolve(root, "android", "app", "src", "main", "res");
+const iconBackground = { r: 246, g: 244, b: 241, alpha: 1 };
+
+async function composeAppIcon(logo: Buffer, size: number, markRatio: number): Promise<Buffer> {
+  const mark = await sharp(logo)
+    .resize(Math.round(size * markRatio), Math.round(size * markRatio), { fit: "contain" })
+    .png()
+    .toBuffer();
+  return sharp({
+    create: { width: size, height: size, channels: 4, background: iconBackground },
+  })
+    .composite([{ input: mark, gravity: "center" }])
+    .png()
+    .toBuffer();
+}
 
 async function writeAndroidIcons(logo: Buffer) {
   const densities = [
@@ -106,10 +126,7 @@ async function writeAndroidIcons(logo: Buffer) {
     const directory = resolve(androidRes, `mipmap-${density.name}`);
     mkdirSync(directory, { recursive: true });
 
-    const launcher = await sharp(logo)
-      .resize(density.launcher, density.launcher, { fit: "cover" })
-      .png()
-      .toBuffer();
+    const launcher = await composeAppIcon(logo, density.launcher, 0.72);
     await sharp(launcher).toFile(resolve(directory, "ic_launcher.png"));
 
     const circleMask = Buffer.from(
@@ -125,13 +142,13 @@ async function writeAndroidIcons(logo: Buffer) {
         width: density.adaptive,
         height: density.adaptive,
         channels: 4,
-        background: { r: 17, g: 17, b: 17, alpha: 1 },
+        background: iconBackground,
       },
     })
       .png()
       .toFile(resolve(directory, "ic_launcher_background.png"));
 
-    const foregroundSize = Math.round(density.adaptive * 0.78);
+    const foregroundSize = Math.round(density.adaptive * 0.68);
     const foreground = await sharp(logo)
       .resize(foregroundSize, foregroundSize, { fit: "cover" })
       .png()
@@ -147,6 +164,16 @@ async function writeAndroidIcons(logo: Buffer) {
       .composite([{ input: foreground, gravity: "center" }])
       .png()
       .toFile(resolve(directory, "ic_launcher_foreground.png"));
+
+    const monochrome = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${density.adaptive}" height="${density.adaptive}" viewBox="0 0 108 108">
+        <path d="M34 30 L50 76 Q52 82 55 76 L74 30" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="square" stroke-linejoin="round"/>
+        <circle cx="76" cy="75" r="6.5" fill="#fff"/>
+      </svg>`
+    );
+    await sharp(monochrome)
+      .png()
+      .toFile(resolve(directory, "ic_launcher_monochrome.png"));
   }
 }
 

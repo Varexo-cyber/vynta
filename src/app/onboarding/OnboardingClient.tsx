@@ -185,7 +185,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
 
   return (
     <div
-      className="native-onboarding dark relative flex min-h-screen flex-col bg-background text-foreground"
+      className="native-onboarding relative flex min-h-screen flex-col bg-background text-foreground"
       onMouseMove={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
         e.currentTarget.style.setProperty("--x", `${e.clientX - rect.left}px`);

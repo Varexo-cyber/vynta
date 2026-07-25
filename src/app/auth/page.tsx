@@ -78,7 +78,7 @@ function AuthContent() {
   };
 
   return (
-    <div className="native-auth dark grid min-h-screen bg-background text-foreground lg:grid-cols-2">
+    <div className="native-auth grid min-h-screen bg-background text-foreground lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-foreground p-10 text-background lg:flex">
         <VyntaBrand size={40} markSrc="/logoaa.png" textClassName="text-black" />
         <div className="relative">

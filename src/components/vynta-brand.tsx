@@ -4,16 +4,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 
 export function VyntaMark({
   size = 38,
   className,
-  src = "/logo.png",
+  src,
 }: {
   size?: number;
   className?: string;
   src?: string;
 }) {
+  const { resolved } = useTheme();
+  const resolvedSrc = src ?? (resolved === "dark" ? "/logoaa.png" : "/logo.png");
+
   return (
     <span
       className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-[10px]", className)}
@@ -21,7 +25,7 @@ export function VyntaMark({
       aria-hidden="true"
     >
       <Image
-        src={src}
+        src={resolvedSrc}
         alt=""
         width={size}
         height={size}

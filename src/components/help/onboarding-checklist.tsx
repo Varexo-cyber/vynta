@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Check, ChevronRight, Eye, EyeOff, Play } from "lucide-react";
+import { X, Check, ChevronRight, EyeOff, Play } from "lucide-react";
 import { useHelp } from "@/components/help/help-provider";
 import { CHECKLIST_TASKS } from "@/lib/help-checklist";
-import { helpActions } from "@/lib/help-actions";
 import { cn } from "@/lib/utils";
 
 export function OnboardingChecklist() {
@@ -14,7 +13,6 @@ export function OnboardingChecklist() {
     checklistHidden,
     checklistAutoDetected,
     checklistProgress,
-    completeTask,
     hideChecklistWidget,
     showChecklistWidget,
     executeAction,
@@ -74,7 +72,7 @@ export function OnboardingChecklist() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
             aria-label={expanded ? "Inklappen" : "Uitklappen"}
           >
             <ChevronRight
@@ -84,7 +82,7 @@ export function OnboardingChecklist() {
           </button>
           <button
             onClick={hideChecklistWidget}
-            className="grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
             aria-label="Verbergen"
           >
             <X size={16} />
@@ -118,7 +116,7 @@ export function OnboardingChecklist() {
                   <div
                     key={task.id}
                     className={cn(
-                      "flex items-center gap-3 p-3 transition-colors",
+                      "flex flex-wrap items-center gap-3 p-3 transition-colors",
                       isDone && "opacity-50"
                     )}
                   >
@@ -141,17 +139,17 @@ export function OnboardingChecklist() {
                       {task.label}
                     </span>
                     {!isDone && (
-                      <div className="flex items-center gap-1.5">
+                      <div className="ml-9 flex w-full items-center gap-2 sm:ml-0 sm:w-auto">
                         <button
                           onClick={() => executeAction(task.actionId)}
-                          className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-surface-3 press"
+                          className="min-h-11 rounded-full bg-surface-2 px-4 text-xs font-semibold text-foreground transition-all hover:bg-surface-3 press"
                         >
                           Start
                         </button>
                         {task.tourId && (
                           <button
                             onClick={() => startGuidedMode(task.tourId!)}
-                            className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-surface-2 press"
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-xs font-semibold text-foreground transition-all hover:bg-surface-2 press"
                           >
                             <Play size={10} />
                             Laat het mij zien
