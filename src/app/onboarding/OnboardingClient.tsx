@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Building2, Globe, Map, MapPin, X } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
+import { ArrowRight, Check, Building2, Globe, LoaderCircle, LocateFixed, Map, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { signUp, signUpWithGoogle, joinNetworks } from "@/lib/actions";
@@ -43,6 +45,27 @@ function networkIcon(type: string) {
 }
 
 class OnboardingTimeoutError extends Error {}
+
+const GOOGLE_ONBOARDING_DRAFT_KEY = "vynta:google-onboarding-draft:v1";
+
+type GoogleOnboardingDraft = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  postcode: string;
+  city: string;
+  place: string;
+  province: string;
+  country: string;
+  municipality: string;
+  municipalityId?: string;
+  industry: string;
+  kvkNumber: string;
+  vatNumber: string;
+};
+
+type LocationStatus = "idle" | "loading" | "success" | "error";
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs = 25_000): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -90,6 +113,42 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
   const [experienceLevel, setExperienceLevel] = useState<string>("normal");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!googleProfile) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const saved = window.sessionStorage.getItem(GOOGLE_ONBOARDING_DRAFT_KEY);
+        if (!saved) return;
+        const draft = JSON.parse(saved) as Partial<GoogleOnboardingDraft>;
+        setName(draft.name ?? "");
+        setEmail(googleProfile.email);
+        setPhone(draft.phone ?? "");
+        setAddress(draft.address ?? "");
+        setPostcode(draft.postcode ?? "");
+        setCity(draft.city ?? "");
+        setPlace(draft.place ?? "");
+        setProvince(draft.province ?? "");
+        setCountry(draft.country || "Nederland");
+        setMunicipality(draft.municipality ?? "");
+        setMunicipalityId(draft.municipalityId);
+        setIndustry(draft.industry ?? "");
+        setKvkNumber(draft.kvkNumber ?? "");
+        setVatNumber(draft.vatNumber ?? "");
+        setStep(3);
+      } catch {
+        window.sessionStorage.removeItem(GOOGLE_ONBOARDING_DRAFT_KEY);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [googleProfile]);
 
   const recommendedNetworks = useMemo(() => {
     const m = municipality ? getMunicipalityByName(municipality) : undefined;
@@ -103,12 +162,128 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
     setSelectedNetworks((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
+  const saveGoogleDraft = () => {
+    const draft: GoogleOnboardingDraft = {
+      name,
+      email,
+      phone,
+      address,
+      postcode,
+      city,
+      place,
+      province,
+      country,
+      municipality,
+      municipalityId,
+      industry,
+      kvkNumber,
+      vatNumber,
+    };
+    window.sessionStorage.setItem(GOOGLE_ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  const fillCurrentLocation = async (latitude: number, longitude: number) => {
+    const response = await fetch("/api/location/reverse", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latitude, longitude }),
+    });
+    const result = (await response.json()) as {
+      ok?: boolean;
+      city?: string;
+      municipality?: string;
+      province?: string;
+      country?: string;
+      error?: string;
+    };
+    if (!response.ok || !result.ok || !result.city || !result.province) {
+      throw new Error(result.error || "Je locatie kon niet worden bepaald.");
+    }
+
+    setCity(result.city);
+    setProvince(result.province);
+    setCountry(result.country || "Nederland");
+    setMunicipality(result.municipality || result.city);
+    setMunicipalityId(getMunicipalityByName(result.municipality || result.city)?.id);
+    setLocationStatus("success");
+    setLocationMessage(`${result.city}, ${result.province} is ingevuld. Controleer of dit je vestigingsplaats is.`);
+  };
+
+  const useCurrentLocation = async () => {
+    setLocationMessage(null);
+    setLocationStatus("loading");
+
+    if (Capacitor.getPlatform() === "android") {
+      try {
+        const permission = await Geolocation.requestPermissions({ permissions: ["coarseLocation"] });
+        if (permission.coarseLocation !== "granted" && permission.location !== "granted") {
+          setLocationStatus("error");
+          setLocationMessage("Locatietoegang is geweigerd. Je kunt je plaats hieronder handmatig invullen.");
+          return;
+        }
+        const { coords } = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: false,
+          timeout: 12_000,
+          maximumAge: 5 * 60_000,
+        });
+        await fillCurrentLocation(coords.latitude, coords.longitude);
+      } catch (locationError) {
+        const code =
+          locationError && typeof locationError === "object" && "code" in locationError
+            ? String(locationError.code)
+            : "";
+        setLocationStatus("error");
+        setLocationMessage(
+          code === "OS-PLUG-GLOC-0003"
+            ? "Locatietoegang is geweigerd. Je kunt je plaats hieronder handmatig invullen."
+            : code === "OS-PLUG-GLOC-0007" || code === "OS-PLUG-GLOC-0017"
+              ? "Locatie staat uit op je telefoon. Zet locatie aan of vul je plaats handmatig in."
+              : locationError instanceof Error
+                ? locationError.message
+                : "Je locatie is niet beschikbaar. Vul je plaats hieronder handmatig in.",
+        );
+      }
+      return;
+    }
+
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("error");
+      setLocationMessage("Locatie delen wordt niet ondersteund in deze browser. Vul je plaats handmatig in.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        void fillCurrentLocation(coords.latitude, coords.longitude).catch((locationError) => {
+          setLocationStatus("error");
+          setLocationMessage(
+            locationError instanceof Error
+              ? locationError.message
+              : "Je locatie kon niet worden bepaald. Vul je plaats handmatig in.",
+          );
+        });
+      },
+      (locationError) => {
+        setLocationStatus("error");
+        if (locationError.code === locationError.PERMISSION_DENIED) {
+          setLocationMessage("Locatietoegang is geweigerd. Je kunt je plaats hieronder handmatig invullen.");
+        } else if (locationError.code === locationError.TIMEOUT) {
+          setLocationMessage("Het bepalen van je locatie duurde te lang. Probeer het opnieuw of vul je plaats handmatig in.");
+        } else {
+          setLocationMessage("Je locatie is niet beschikbaar. Vul je plaats hieronder handmatig in.");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 12_000, maximumAge: 5 * 60_000 },
+    );
+  };
+
   const canNext =
     step === 0 ? name.trim().length > 1 && !!industry :
     step === 1 ? !!country && !!province && !!city :
     step === 2 ? !!address && !!postcode && !!phone :
     step === 3 ? Boolean(googleProfile) || (!!email && password.length >= 10) :
-    step === 4 ? selectedNetworks.length > 0 :
+    step === 4 ? true :
     step === 5 ? goals.length > 0 :
     true;
 
@@ -144,6 +319,8 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
           setError(res.error ?? "Account aanmaken mislukt");
           return;
         }
+        window.sessionStorage.removeItem(GOOGLE_ONBOARDING_DRAFT_KEY);
+        setAccountCreated(true);
         setSelectedNetworks(recommendedNetworks.map((n) => n.id));
         setStep(4);
       } catch (actionError) {
@@ -273,9 +450,41 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight">Waar zit je?</h1>
                 <p className="mt-2 text-base text-muted">We koppelen je automatisch aan lokale netwerken.</p>
+                <button
+                  type="button"
+                  onClick={useCurrentLocation}
+                  disabled={locationStatus === "loading"}
+                  data-testid="use-current-location"
+                  className="mt-7 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 disabled:cursor-wait disabled:opacity-70"
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-foreground text-background">
+                    {locationStatus === "loading" ? <LoaderCircle size={19} className="animate-spin" /> : <LocateFixed size={19} />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">
+                      {locationStatus === "loading" ? "Locatie bepalen…" : locationStatus === "success" ? "Locatie opnieuw bepalen" : "Gebruik mijn locatie"}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-muted">
+                      Alleen om stad, gemeente en provincie in te vullen
+                    </span>
+                  </span>
+                </button>
+                {locationMessage && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className={cn(
+                      "mt-3 rounded-xl border px-3.5 py-3 text-sm leading-5",
+                      locationStatus === "success"
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                        : "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200",
+                    )}
+                  >
+                    {locationMessage}
+                  </p>
+                )}
                 <div className="mt-8 grid gap-3">
                   <input
-                    autoFocus
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="Stad"
@@ -364,7 +573,11 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
                   </div>
                 ) : (
                   <>
-                    <GoogleAuthButton className="mt-8 border border-border" onError={(message) => setError(message || null)} />
+                    <GoogleAuthButton
+                      className="mt-8 border border-border"
+                      onBeforeStart={saveGoogleDraft}
+                      onError={(message) => setError(message || null)}
+                    />
                     <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-border" />of met e-mail<span className="h-px flex-1 bg-border" /></div>
                   </>
                 )}
@@ -528,7 +741,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
       </div>
 
       <div className="native-onboarding__actions mx-auto flex w-full max-w-md gap-3 px-6 pb-10">
-        {step > 0 && (
+        {step > 0 && !(accountCreated && step >= 4) && (
           <Button
             onClick={() => setStep((s) => s - 1)}
             size="lg"
@@ -545,7 +758,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
           className={step > 0 ? "native-onboarding__primary-action min-w-0 flex-1 px-3" : "w-full"}
           variant="accent"
         >
-          {step === 3 ? (loading ? "Bezig…" : "Account aanmaken") : step === 5 ? (loading ? "Bezig…" : "Klaar met instellen") : step === 4 ? (loading ? "Bezig…" : "Start op Vynta") : "Doorgaan"}
+          {step === 3 ? (loading ? "Bezig…" : "Account aanmaken") : step === 5 ? (loading ? "Bezig…" : "Klaar met instellen") : step === 4 ? "Verder" : "Doorgaan"}
           <ArrowRight size={18} />
         </Button>
       </div>

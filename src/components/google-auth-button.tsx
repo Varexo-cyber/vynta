@@ -48,14 +48,20 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
 
 interface GoogleAuthButtonProps {
   className?: string;
+  onBeforeStart?: () => void;
   onError?: (message: string) => void;
 }
 
-export function GoogleAuthButton({ className, onError }: GoogleAuthButtonProps) {
+export function GoogleAuthButton({ className, onBeforeStart, onError }: GoogleAuthButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const start = async () => {
     onError?.("");
+    try {
+      onBeforeStart?.();
+    } catch {
+      // Beperkte browseropslag mag Google-inloggen niet blokkeren.
+    }
     if (!Capacitor.isNativePlatform()) {
       window.location.assign("/api/auth/google/start");
       return;
