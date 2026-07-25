@@ -98,7 +98,7 @@ function AuthContent() {
       >
         <div className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-300" style={{ background: "radial-gradient(600px circle at var(--x, 50%) var(--y, 50%), rgba(255,90,60,0.12), transparent 40%)" }} />
         <div className="native-auth__mobile-brand">
-          <VyntaBrand size={38} markSrc="/logoaa.png" textClassName="text-white" />
+          <VyntaBrand size={38} textClassName="text-foreground" />
           <span className="native-auth__secure"><LockKeyhole size={13} /> Beveiligd</span>
         </div>
         <Link href="/" className="native-auth__back relative mb-8 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground lg:hidden"><ArrowLeft size={16} /> Terug</Link>

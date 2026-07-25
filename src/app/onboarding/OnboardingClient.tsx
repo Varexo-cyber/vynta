@@ -200,7 +200,7 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
         }}
       />
       <div className="native-onboarding__header relative flex items-center justify-between px-6 py-5">
-        <VyntaBrand size={34} markSrc="/logoaa.png" textClassName="text-white" />
+        <VyntaBrand size={34} className="min-h-11" textClassName="native-onboarding__brand-text" />
         <div className="flex items-center gap-3">
           <span className="native-onboarding__step-label">Stap {step + 1} van 6</span>
           <Link href={step === 0 ? "/" : "/auth"} className="native-onboarding__close" aria-label="Aanmelden sluiten">

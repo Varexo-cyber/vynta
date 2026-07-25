@@ -117,13 +117,17 @@ export function OwnerDashboardClient({ data }: { data: OwnerDashboardData }) {
             </div>
             <p className={cn("text-xs text-muted", isRefreshing && "animate-pulse")}>{isRefreshing ? "Gegevens vernieuwen…" : "Alle acties worden gelogd"}</p>
           </div>
-          <div className="mt-7 flex gap-1 overflow-x-auto rounded-2xl bg-surface-2 p-1">
+          <div className="mt-7 flex gap-1 overflow-x-auto rounded-2xl bg-surface-2 p-1" role="tablist" aria-label="Owner Center onderdelen">
             {TABS.map((item) => (
               <button
                 key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === item.id}
+                data-owner-tab={item.id}
                 onClick={() => setTab(item.id)}
                 className={cn(
-                  "flex min-w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
+                  "flex min-h-11 min-w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors",
                   tab === item.id ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"
                 )}
               >
@@ -386,13 +390,13 @@ function ActionDialog({ action, reason, setReason, loading, onCancel, onConfirm 
       <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div><h2 id="owner-dialog-title" className="text-lg font-bold">{action.title}</h2><p className="mt-2 text-sm leading-6 text-muted">{action.description}</p></div>
-          <button onClick={onCancel} disabled={loading} aria-label="Sluiten" className="rounded-full p-2 text-muted hover:bg-surface-2"><X size={18} /></button>
+          <button type="button" onClick={onCancel} disabled={loading} aria-label="Sluiten" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2"><X size={18} /></button>
         </div>
         <label className="mt-5 block text-sm font-semibold">{action.requireReason ? "Reden (verplicht)" : "Notitie (optioneel)"}</label>
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder={action.requireReason ? "Leg kort uit waarom…" : "Voeg context toe voor het auditlog…"} className="mt-2 w-full resize-none rounded-2xl bg-surface-2 px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-border-strong" />
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onCancel} disabled={loading} className="rounded-full px-4 py-2 text-sm font-semibold text-muted hover:bg-surface-2">Annuleren</button>
-          <button onClick={onConfirm} disabled={loading || (action.requireReason && reason.trim().length < 3)} className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background disabled:opacity-40">{loading ? "Bezig…" : "Bevestigen"}</button>
+          <button type="button" onClick={onCancel} disabled={loading} className="min-h-11 rounded-full px-4 py-2 text-sm font-semibold text-muted hover:bg-surface-2">Annuleren</button>
+          <button type="button" onClick={onConfirm} disabled={loading || (action.requireReason && reason.trim().length < 3)} className="min-h-11 rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-background disabled:opacity-40">{loading ? "Bezig…" : "Bevestigen"}</button>
         </div>
       </div>
     </div>
