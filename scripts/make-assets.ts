@@ -6,24 +6,30 @@ const root = resolve(__dirname, "..");
 const assetsDir = resolve(root, "assets");
 mkdirSync(assetsDir, { recursive: true });
 
-// Gebruik de lichte, originele Vynta-mark voor native iconen. De donkere
-// websitevariant heeft te weinig contrast op Android-launchers.
-const publicLightLogoPng = resolve(root, "public", "logoaa.png");
+const nativeBrandIcon = resolve(root, "icons", "icon-512.webp");
 const publicLogoPng = resolve(root, "public", "logo.png");
 const assetsLogoPng = resolve(assetsDir, "logo.png");
 const assetsLogoSvg = resolve(assetsDir, "logo.svg");
 
 async function loadLogo(): Promise<Buffer> {
-  if (existsSync(publicLightLogoPng)) {
-    console.log("Using the high-contrast Vynta app mark");
-    return sharp(publicLightLogoPng)
-      .extract({ left: 280, top: 260, width: 464, height: 464 })
+  if (existsSync(nativeBrandIcon)) {
+    console.log("Using the official Vynta app mark");
+    const dot = Buffer.from(
+      `<svg width="512" height="512"><circle cx="374" cy="370" r="40" fill="#ff4f1f"/></svg>`
+    );
+    return sharp(nativeBrandIcon)
+      .resize(512, 512)
+      .composite([{ input: dot }])
       .png()
       .toBuffer();
   }
   if (existsSync(publicLogoPng)) {
-    console.log("Using public/logo.png");
-    return readFileSync(publicLogoPng);
+    console.log("Using the Vynta website mark");
+    return sharp(publicLogoPng)
+      // This is the same centered crop used by VyntaMark on the website.
+      .extract({ left: 448, top: 192, width: 640, height: 640 })
+      .png()
+      .toBuffer();
   }
   if (existsSync(assetsLogoPng)) {
     console.log("Using assets/logo.png");
@@ -119,7 +125,7 @@ async function writeAndroidIcons(logo: Buffer) {
         width: density.adaptive,
         height: density.adaptive,
         channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+        background: { r: 17, g: 17, b: 17, alpha: 1 },
       },
     })
       .png()

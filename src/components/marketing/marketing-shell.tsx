@@ -37,14 +37,14 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-2.5">
             <span className="hidden items-center gap-1.5 rounded-full border border-[#e3e6e9] bg-[#f8f9fa] px-3 py-1.5 text-[11px] font-bold text-[#59616b] lg:inline-flex"><Check size={13} className="text-[#16835b]" /> Gratis starten</span>
-            <Link href="/auth" className="rounded-lg px-3 py-2.5 text-[14px] font-semibold text-[#30343a] transition-all hover:-translate-y-0.5 hover:bg-[#f2f3f4]">Inloggen</Link>
+            <Link href="/auth" className="inline-flex min-h-11 items-center rounded-lg px-3 py-2.5 text-[14px] font-semibold text-[#30343a] transition-all hover:-translate-y-0.5 hover:bg-[#f2f3f4]">Inloggen</Link>
             <motion.div whileHover={{ y: -2, scale: 1.015 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 420, damping: 25 }}>
-              <Link href="/onboarding" className="inline-flex items-center gap-1.5 rounded-lg bg-[#17191c] px-3.5 py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(20,22,25,0.12)] transition-colors hover:bg-[#30343a] sm:px-4"><span className="sm:hidden">Gratis starten</span><span className="hidden sm:inline">Bedrijf aanmelden</span><ArrowUpRight size={15} /></Link>
+              <Link href="/onboarding" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[#17191c] px-3.5 py-2.5 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(20,22,25,0.12)] transition-colors hover:bg-[#30343a] sm:px-4"><span className="sm:hidden">Gratis starten</span><span className="hidden sm:inline">Bedrijf aanmelden</span><ArrowUpRight size={15} /></Link>
             </motion.div>
           </div>
         </motion.div>
         <nav className="mx-auto flex max-w-[1180px] items-center justify-center gap-1 border-t border-[#eef0f2] px-3 py-1.5 md:hidden" aria-label="Mobiele hoofdnavigatie">
-          {NAV.map((item) => <Link key={item.href} href={item.href} className={cn("rounded-lg px-3 py-2 text-[12px] font-semibold", pathname === item.href ? "bg-[#f1f3f4] text-[#17191c]" : "text-[#737a84]")}>{item.label}</Link>)}
+          {NAV.map((item) => <Link key={item.href} href={item.href} className={cn("inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-[12px] font-semibold", pathname === item.href ? "bg-[#f1f3f4] text-[#17191c]" : "text-[#737a84]")}>{item.label}</Link>)}
         </nav>
       </header>
 

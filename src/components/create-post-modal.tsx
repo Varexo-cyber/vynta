@@ -448,14 +448,19 @@ export function CreatePostModal() {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-post-title"
             className="create-post-sheet relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-surface shadow-2xl sm:max-w-xl sm:rounded-3xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-lg font-semibold tracking-tight">Nieuwe post</h2>
+              <h2 id="create-post-title" className="text-lg font-semibold tracking-tight">Nieuwe post</h2>
               <button
+                type="button"
                 onClick={close}
-                className="grid h-9 w-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 press"
+                aria-label="Post maken sluiten"
+                className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 press"
               >
                 <X size={18} />
               </button>
@@ -481,7 +486,7 @@ export function CreatePostModal() {
                       onClick={() => setType(t)}
                       data-tour-id={`post-type-${t}`}
                       className={cn(
-                        "flex min-h-[40px] shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
+                        "flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
                         active
                           ? "bg-foreground text-background ring-1 ring-inset ring-orange-400/70"
                           : "border border-border bg-surface-2 text-foreground hover:border-border-strong hover:bg-surface-3"
