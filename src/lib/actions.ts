@@ -114,7 +114,7 @@ export async function signUp(input: {
           ${input.city}, ${input.province}, ${input.country},
           ${input.municipality || null}, ${input.municipalityId || null},
           ${input.address}, ${input.postcode},
-          ${input.description || null}, ${input.website || null}, ${input.phone}, ${email},
+          ${input.description?.trim() || ""}, ${input.website || null}, ${input.phone}, ${email},
           ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
         )
         RETURNING id`;
@@ -222,7 +222,7 @@ export async function signUpWithGoogle(input: {
         ) VALUES (
           ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry}, ${input.city},
           ${input.province}, ${input.country}, ${input.municipality || null}, ${input.municipalityId || null},
-          ${input.address}, ${input.postcode}, ${input.description || null}, ${input.website || null},
+          ${input.address}, ${input.postcode}, ${input.description?.trim() || ""}, ${input.website || null},
           ${input.phone}, ${identity.email}, ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
         ) RETURNING id
       `;
