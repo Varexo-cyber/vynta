@@ -320,7 +320,7 @@ export function ProductTour() {
           aria-hidden
         >
           <MousePointerClick size={15} />
-          Klik hier
+          Druk hier
         </motion.div>
       )}
 
@@ -357,13 +357,13 @@ export function ProductTour() {
 
           {waitsForAction && targetRect && (
             <p className="mt-2 text-xs font-medium text-brand">
-              Klik op het oranje gemarkeerde onderdeel. De volgende stap verschijnt daarna vanzelf.
+              Druk op het oranje gemarkeerde onderdeel. De volgende stap verschijnt daarna vanzelf.
             </p>
           )}
           {!targetRect && (
             <p className="mt-2 text-xs font-medium text-brand">
               {recoveryAction
-                ? "Dit onderdeel staat op een ander scherm. Open dat scherm om de aanwijzing te vervolgen."
+                ? "Dit onderdeel staat op een ander scherm. Druk op de oranje knop om daar verder te gaan."
                 : "Dit onderdeel is nog niet zichtbaar. Rond de vorige stap af of ga één stap terug."}
             </p>
           )}
@@ -398,7 +398,7 @@ export function ProductTour() {
                       setTransitionTarget(currentTourStep.selector);
                       executeAction(currentTourStep.actionId!);
                     }}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-all hover:opacity-90 press"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-semibold text-brand-fg shadow-[0_8px_24px_rgba(255,96,61,0.3)] transition-all hover:brightness-105 press"
                   >
                     {recoveryAction.label} <ChevronRight size={16} />
                   </button>
