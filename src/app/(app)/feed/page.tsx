@@ -8,9 +8,9 @@ export default async function FeedPage() {
   const session = await getSession();
   if (!session) redirect("/auth");
 
-  await cleanupExpiredPosts();
   const [posts] = await Promise.all([
     getFeed(session.company.id),
+    cleanupExpiredPosts().catch(() => 0),
     notifyExpiringPosts().catch(() => 0),
   ]);
 
