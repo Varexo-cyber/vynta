@@ -8,6 +8,7 @@ export interface TourStep {
   placement?: "bottom" | "top" | "left" | "right" | "center";
   actionId?: HelpActionId;
   waitForAction?: boolean;
+  completeOnRecovery?: boolean;
 }
 
 export interface TourDef {
@@ -84,6 +85,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "bottom",
         actionId: "CREATE_POST",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "post-type-offer",
@@ -139,6 +141,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "bottom",
         actionId: "CREATE_VACANCY",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "post-type-hiring",
@@ -187,6 +190,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "top",
         actionId: "OPEN_COMPANY_PROFILE",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "company-logo-upload",
@@ -212,6 +216,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "top",
         actionId: "OPEN_COMPANY_PROFILE",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "company-edit",
@@ -246,6 +251,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "top",
         actionId: "OPEN_COMPANY_PROFILE",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "company-edit",
@@ -280,6 +286,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "right",
         actionId: "OPEN_NETWORKS",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "network-join",
@@ -305,6 +312,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "bottom",
         actionId: "CREATE_POST",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "post-body",
@@ -348,6 +356,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "right",
         actionId: "OPEN_SEARCH",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "search-query",
@@ -388,6 +397,7 @@ export const GUIDED_TOURS: Record<string, TourDef> = {
         placement: "right",
         actionId: "OPEN_SEARCH",
         waitForAction: true,
+        completeOnRecovery: true,
       },
       {
         tourId: "search-query",
