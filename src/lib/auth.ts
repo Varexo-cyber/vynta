@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { randomBytes } from "node:crypto";
+import { cache } from "react";
 import bcrypt from "bcryptjs";
 import { sql } from "./db";
 import type { Company } from "./types";
@@ -50,7 +51,7 @@ export interface SessionUser {
   company: Company;
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+const readSession = async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
@@ -113,7 +114,11 @@ export async function getSession(): Promise<SessionUser | null> {
     accountStatus: r.account_status as AccountStatus,
     company,
   };
-}
+};
+
+// Layouts and pages request the same session during one render. React cache
+// deduplicates that database work per request without sharing it across users.
+export const getSession = cache(readSession);
 
 export async function requireCompanyId(): Promise<string> {
   const session = await getSession();

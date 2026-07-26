@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  MousePointerClick,
+} from "lucide-react";
 import { useHelp } from "@/components/help/help-provider";
 import { getHelpAction } from "@/lib/help-actions";
 import { cn } from "@/lib/utils";
@@ -26,6 +32,7 @@ export function ProductTour() {
     executeAction,
   } = useHelp();
   const [targetRect, setTargetRect] = useState<ElementRect | null>(null);
+  const [transitionTarget, setTransitionTarget] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const getVisibleTarget = useCallback((selector: string): HTMLElement | null => {
@@ -45,16 +52,38 @@ export function ProductTour() {
 
   useEffect(() => {
     if (!currentTourStep) {
-      queueMicrotask(() => setTargetRect(null));
+      queueMicrotask(() => {
+        setTargetRect(null);
+        setTransitionTarget(null);
+      });
       return;
     }
 
     let observedTarget: HTMLElement | null = null;
     let advanced = false;
 
-    const advanceAfterAction = () => {
+    const advanceAfterAction = (event: Event) => {
       if (!currentTourStep.waitForAction || advanced) return;
       advanced = true;
+      const clickedElement =
+        event.target instanceof Element ? event.target : observedTarget;
+      const link =
+        clickedElement?.closest<HTMLAnchorElement>("a[href]") ??
+        observedTarget?.closest<HTMLAnchorElement>("a[href]");
+      const href = link?.getAttribute("href");
+      if (href) {
+        const destination = new URL(href, window.location.href);
+        const currentLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const nextLocation = `${destination.pathname}${destination.search}${destination.hash}`;
+        if (
+          destination.origin === window.location.origin &&
+          nextLocation !== currentLocation
+        ) {
+          const nextStep = activeTour?.steps[tourStepIndex + 1];
+          setTargetRect(null);
+          setTransitionTarget(nextStep?.selector ?? currentTourStep.selector);
+        }
+      }
       if (activeTour) {
         try {
           sessionStorage.setItem(
@@ -128,6 +157,18 @@ export function ProductTour() {
     tourStepIndex,
   ]);
 
+  useEffect(() => {
+    if (!transitionTarget) return;
+
+    if (targetRect && currentTourStep?.selector === transitionTarget) {
+      const frame = requestAnimationFrame(() => setTransitionTarget(null));
+      return () => cancelAnimationFrame(frame);
+    }
+
+    const timeout = window.setTimeout(() => setTransitionTarget(null), 15_000);
+    return () => window.clearTimeout(timeout);
+  }, [currentTourStep?.selector, targetRect, transitionTarget]);
+
   const handleNext = useCallback(() => {
     if (tourStepIndex >= (activeTour?.steps.length ?? 1) - 1) {
       endTour(true);
@@ -137,6 +178,41 @@ export function ProductTour() {
   }, [activeTour, tourStepIndex, nextTourStep, endTour]);
 
   if (!activeTour || !currentTourStep) return null;
+
+  if (transitionTarget) {
+    return (
+      <>
+        <div
+          className="pointer-events-none fixed inset-0 z-[80] bg-black/55 backdrop-blur-[1px]"
+          aria-hidden
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 8, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="fixed left-1/2 top-1/2 z-[81] w-[340px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 text-center shadow-2xl"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand">
+            <LoaderCircle className="animate-spin" size={24} />
+          </span>
+          <h3 className="mt-4 text-base font-semibold tracking-tight">
+            Pagina wordt geladen
+          </h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            Een moment geduld. De volgende aanwijzing verschijnt zodra alles klaarstaat.
+          </p>
+          <button
+            type="button"
+            onClick={() => endTour(false)}
+            className="mt-4 min-h-11 px-3 text-sm font-medium text-muted transition-colors hover:text-foreground"
+          >
+            Rondleiding stoppen
+          </button>
+        </motion.div>
+      </>
+    );
+  }
 
   const isLastStep = tourStepIndex >= activeTour.steps.length - 1;
   const waitsForAction = Boolean(currentTourStep.waitForAction);
@@ -188,6 +264,25 @@ export function ProductTour() {
   };
 
   const popoverStyle = positionPopover();
+  const targetLabelStyle: React.CSSProperties | undefined = targetRect
+    ? {
+        position: "fixed",
+        top:
+          targetRect.top > 64
+            ? targetRect.top - padding - 46
+            : Math.min(
+                targetRect.top + targetRect.height + padding + 12,
+                window.innerHeight - 44,
+              ),
+        left: Math.max(
+          12,
+          Math.min(
+            targetRect.left + targetRect.width / 2 - 54,
+            window.innerWidth - 120,
+          ),
+        ),
+      }
+    : undefined;
 
   return (
     <>
@@ -197,22 +292,37 @@ export function ProductTour() {
       >
         {targetRect ? (
           <motion.div
-            initial={{ opacity: 0.45, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="absolute rounded-xl ring-2 ring-brand"
+            initial={{ opacity: 0.7 }}
+            animate={{ opacity: [0.82, 1, 0.82] }}
+            transition={{ duration: 1.25, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute rounded-xl"
             style={{
               top: targetRect.top - padding,
               left: targetRect.left - padding,
               width: targetRect.width + padding * 2,
               height: targetRect.height + padding * 2,
-              boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+              border: "3px solid #ff603d",
+              boxShadow:
+                "0 0 0 7px rgba(255,96,61,0.28), 0 0 28px rgba(255,96,61,0.72), 0 0 0 9999px rgba(0,0,0,0.58)",
             }}
           />
         ) : (
           <div className="absolute inset-0 bg-black/45" />
         )}
       </div>
+
+      {targetRect && targetLabelStyle && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={targetLabelStyle}
+          className="pointer-events-none fixed z-[82] inline-flex h-9 items-center gap-1.5 rounded-full bg-[#ff603d] px-3 text-xs font-bold text-white shadow-[0_8px_24px_rgba(255,96,61,0.42)]"
+          aria-hidden
+        >
+          <MousePointerClick size={15} />
+          Klik hier
+        </motion.div>
+      )}
 
       <AnimatePresence>
         <motion.div
@@ -247,7 +357,7 @@ export function ProductTour() {
 
           {waitsForAction && targetRect && (
             <p className="mt-2 text-xs font-medium text-brand">
-              Klik op het gemarkeerde onderdeel. Daarna verschijnt automatisch de volgende stap.
+              Klik op het oranje gemarkeerde onderdeel. De volgende stap verschijnt daarna vanzelf.
             </p>
           )}
           {!targetRect && (
@@ -283,7 +393,11 @@ export function ProductTour() {
                 currentTourStep.actionId && (
                   <button
                     type="button"
-                    onClick={() => executeAction(currentTourStep.actionId!)}
+                    onClick={() => {
+                      setTargetRect(null);
+                      setTransitionTarget(currentTourStep.selector);
+                      executeAction(currentTourStep.actionId!);
+                    }}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-all hover:opacity-90 press"
                   >
                     {recoveryAction.label} <ChevronRight size={16} />

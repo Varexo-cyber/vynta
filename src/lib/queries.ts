@@ -251,8 +251,11 @@ export async function getFeed(companyId: string): Promise<Post[]> {
       )
     )
     SELECT n.* FROM needs n
-    WHERE n.id IN (SELECT id FROM visible)
-       OR n.company_id = ${companyId}
+    WHERE (
+      n.id IN (SELECT id FROM visible)
+      OR n.company_id = ${companyId}
+    )
+      AND (n.expires_at IS NULL OR n.expires_at >= now())
     ORDER BY n.created_at DESC
     LIMIT 100
   `;
