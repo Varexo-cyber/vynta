@@ -417,9 +417,17 @@ export function ProductTour() {
                   <button
                     type="button"
                     onClick={() => {
+                      const nextStep = activeTour.steps[tourStepIndex + 1];
                       setTargetRect(null);
-                      setTransitionTarget(currentTourStep.selector);
+                      setTransitionTarget(
+                        currentTourStep.completeOnRecovery
+                          ? nextStep?.selector ?? currentTourStep.selector
+                          : currentTourStep.selector,
+                      );
                       executeAction(currentTourStep.actionId!);
+                      if (currentTourStep.completeOnRecovery) {
+                        window.setTimeout(nextTourStep, 0);
+                      }
                     }}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-semibold text-brand-fg shadow-[0_8px_24px_rgba(255,96,61,0.3)] transition-all hover:brightness-105 press"
                   >
