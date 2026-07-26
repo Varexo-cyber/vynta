@@ -71,6 +71,9 @@ export function ProductTour() {
 
     let observedTarget: HTMLElement | null = null;
     let advanced = false;
+    let waitingForScroll = false;
+    let previousTargetTop: number | null = null;
+    let stableTargetSamples = 0;
 
     const advanceAfterAction = (event: Event) => {
       if (!currentTourStep.waitForAction || advanced) return;
@@ -121,6 +124,15 @@ export function ProductTour() {
       }
       observedTarget = target;
       if (observedTarget) {
+        const initialRect = observedTarget.getBoundingClientRect();
+        waitingForScroll = !(
+          initialRect.bottom > 0 &&
+          initialRect.right > 0 &&
+          initialRect.top < window.innerHeight &&
+          initialRect.left < window.innerWidth
+        );
+        previousTargetTop = null;
+        stableTargetSamples = 0;
         observedTarget.scrollIntoView({
           behavior: "smooth",
           block: "center",
@@ -142,6 +154,18 @@ export function ProductTour() {
           rect.right > 0 &&
           rect.top < window.innerHeight &&
           rect.left < window.innerWidth;
+        if (intersectsViewport && waitingForScroll) {
+          const isStable =
+            previousTargetTop !== null &&
+            Math.abs(rect.top - previousTargetTop) < 1;
+          stableTargetSamples = isStable ? stableTargetSamples + 1 : 0;
+          previousTargetTop = rect.top;
+          if (stableTargetSamples < 1) {
+            setTargetRect(null);
+            return;
+          }
+          waitingForScroll = false;
+        }
         setTargetRect(
           intersectsViewport
             ? {
