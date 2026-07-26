@@ -67,14 +67,14 @@ export default function RootLayout({
       <head>
         <link
           rel="icon"
-          type="image/svg+xml"
-          href="/favicon-light.svg?v=4"
+          type="image/png"
+          href="/favicon-light.png?v=5"
           media="(prefers-color-scheme: light)"
         />
         <link
           rel="icon"
-          type="image/svg+xml"
-          href="/favicon-dark.svg?v=4"
+          type="image/png"
+          href="/favicon-dark.png?v=5"
           media="(prefers-color-scheme: dark)"
         />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
