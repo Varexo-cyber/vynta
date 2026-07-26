@@ -186,30 +186,32 @@ export function ProductTour() {
           className="pointer-events-none fixed inset-0 z-[80] bg-black/55 backdrop-blur-[1px]"
           aria-hidden
         />
-        <motion.div
-          initial={{ opacity: 0, y: 8, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="fixed left-1/2 top-1/2 z-[81] w-[340px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-surface p-6 text-center shadow-2xl"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand">
-            <LoaderCircle className="animate-spin" size={24} />
-          </span>
-          <h3 className="mt-4 text-base font-semibold tracking-tight">
-            Pagina wordt geladen
-          </h3>
-          <p className="mt-1.5 text-sm leading-relaxed text-muted">
-            Een moment geduld. De volgende aanwijzing verschijnt zodra alles klaarstaat.
-          </p>
-          <button
-            type="button"
-            onClick={() => endTour(false)}
-            className="mt-4 min-h-11 px-3 text-sm font-medium text-muted transition-colors hover:text-foreground"
+        <div className="pointer-events-none fixed inset-0 z-[81] grid place-items-center px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="pointer-events-auto w-full max-w-[340px] rounded-2xl border border-border bg-surface p-6 text-center shadow-2xl"
+            role="status"
+            aria-live="polite"
           >
-            Rondleiding stoppen
-          </button>
-        </motion.div>
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-brand/10 text-brand">
+              <LoaderCircle className="animate-spin" size={24} />
+            </span>
+            <h3 className="mt-4 text-base font-semibold tracking-tight">
+              Pagina wordt geladen
+            </h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">
+              Een moment geduld. De volgende aanwijzing verschijnt zodra alles klaarstaat.
+            </p>
+            <button
+              type="button"
+              onClick={() => endTour(false)}
+              className="mt-4 min-h-11 px-3 text-sm font-medium text-muted transition-colors hover:text-foreground"
+            >
+              Rondleiding stoppen
+            </button>
+          </motion.div>
+        </div>
       </>
     );
   }
@@ -229,9 +231,14 @@ export function ProductTour() {
     if (!targetRect) {
       return {
         position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
+        top: Math.max(
+          viewportGap,
+          (window.innerHeight - estimatedPopoverHeight) / 2,
+        ),
+        left: Math.max(
+          viewportGap,
+          (window.innerWidth - popoverWidth) / 2,
+        ),
         maxWidth: `${popoverWidth}px`,
       };
     }
