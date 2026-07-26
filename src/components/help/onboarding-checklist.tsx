@@ -7,7 +7,7 @@ import { useHelp } from "@/components/help/help-provider";
 import { CHECKLIST_TASKS } from "@/lib/help-checklist";
 import { cn } from "@/lib/utils";
 
-export function OnboardingChecklist() {
+export function OnboardingChecklist({ compact = false }: { compact?: boolean }) {
   const {
     checklistCompleted,
     checklistHidden,
@@ -20,7 +20,7 @@ export function OnboardingChecklist() {
     productTipsEnabled,
   } = useHelp();
 
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(!compact);
 
   if (!productTipsEnabled) return null;
 
