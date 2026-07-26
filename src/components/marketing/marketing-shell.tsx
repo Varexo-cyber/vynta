@@ -23,7 +23,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-[#e5e7eb]/90 bg-white/85 backdrop-blur-xl">
         <motion.div className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-[#f15a37]" style={{ scaleX: progress }} aria-hidden="true" />
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-7">
-          <VyntaBrand size={38} />
+          <VyntaBrand size={38} markSrc="/logo.png" />
           <nav className="hidden items-center gap-1 md:flex" aria-label="Hoofdnavigatie">
             {NAV.map((item) => {
               const active = pathname === item.href;
