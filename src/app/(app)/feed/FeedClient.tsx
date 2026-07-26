@@ -81,6 +81,10 @@ export function FeedClient({ posts }: { posts: Post[] }) {
           {/* Personal recommendation */}
           <PersonalRecommendation />
 
+          <div className="mb-6 2xl:hidden">
+            <OnboardingChecklist compact />
+          </div>
+
           {/* Network stories */}
           {myNetworks.length > 0 && (
             <div className="network-story-strip no-scrollbar -mx-4 mb-6 flex gap-3 overflow-x-auto px-4 pb-2">
