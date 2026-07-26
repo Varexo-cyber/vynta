@@ -16,7 +16,6 @@ export const metadata: Metadata = {
     "Het gratis zakelijke socialmediaplatform waar Nederlandse bedrijven zich presenteren, kansen vinden en rechtstreeks met elkaar in contact komen.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png?v=3",
     apple: "/apple-touch-icon.png?v=3",
   },
   appleWebApp: {
@@ -66,7 +65,18 @@ export default function RootLayout({
   return (
     <html lang="nl" className={`${inter.variable} h-full`} suppressHydrationWarning>
       <head>
-        <link rel="icon" type="image/png" href="/favicon.png?v=3" />
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          href="/favicon-light.svg?v=4"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          href="/favicon-dark.svg?v=4"
+          media="(prefers-color-scheme: dark)"
+        />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
