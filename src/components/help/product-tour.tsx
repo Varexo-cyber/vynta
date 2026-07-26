@@ -37,17 +37,24 @@ export function ProductTour() {
 
   const getVisibleTarget = useCallback((selector: string): HTMLElement | null => {
     const elements = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
-    return elements.find((element) => {
+    const rendered = elements.filter((element) => {
       const rect = element.getBoundingClientRect();
-      return (
-        rect.width > 0 &&
-        rect.height > 0 &&
-        rect.bottom > 0 &&
-        rect.right > 0 &&
-        rect.top < window.innerHeight &&
-        rect.left < window.innerWidth
-      );
-    }) ?? null;
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden";
+    });
+    return (
+      rendered.find((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          rect.bottom > 0 &&
+          rect.right > 0 &&
+          rect.top < window.innerHeight &&
+          rect.left < window.innerWidth
+        );
+      }) ??
+      rendered[0] ??
+      null
+    );
   }, []);
 
   useEffect(() => {
@@ -127,12 +134,21 @@ export function ProductTour() {
       observeTarget(liveTarget);
       if (liveTarget) {
         const rect = liveTarget.getBoundingClientRect();
-        setTargetRect({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        });
+        const intersectsViewport =
+          rect.bottom > 0 &&
+          rect.right > 0 &&
+          rect.top < window.innerHeight &&
+          rect.left < window.innerWidth;
+        setTargetRect(
+          intersectsViewport
+            ? {
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+              }
+            : null,
+        );
       } else {
         setTargetRect(null);
       }
