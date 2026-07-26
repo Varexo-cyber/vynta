@@ -30,9 +30,11 @@ export function ProductTour() {
     endTour,
     guidedModeActive,
     executeAction,
+    currentRoute,
   } = useHelp();
   const [targetRect, setTargetRect] = useState<ElementRect | null>(null);
   const [transitionTarget, setTransitionTarget] = useState<string | null>(null);
+  const [recoveryNavigationFrom, setRecoveryNavigationFrom] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const getVisibleTarget = useCallback((selector: string): HTMLElement | null => {
@@ -62,6 +64,7 @@ export function ProductTour() {
       queueMicrotask(() => {
         setTargetRect(null);
         setTransitionTarget(null);
+        setRecoveryNavigationFrom(null);
       });
       return;
     }
@@ -184,6 +187,15 @@ export function ProductTour() {
     const timeout = window.setTimeout(() => setTransitionTarget(null), 15_000);
     return () => window.clearTimeout(timeout);
   }, [currentTourStep?.selector, targetRect, transitionTarget]);
+
+  useEffect(() => {
+    if (!recoveryNavigationFrom || currentRoute === recoveryNavigationFrom) return;
+    const frame = requestAnimationFrame(() => {
+      setRecoveryNavigationFrom(null);
+      nextTourStep();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentRoute, nextTourStep, recoveryNavigationFrom]);
 
   const handleNext = useCallback(() => {
     if (tourStepIndex >= (activeTour?.steps.length ?? 1) - 1) {
@@ -426,7 +438,14 @@ export function ProductTour() {
                       );
                       executeAction(currentTourStep.actionId!);
                       if (currentTourStep.completeOnRecovery) {
-                        window.setTimeout(nextTourStep, 0);
+                        if (
+                          recoveryAction.route &&
+                          recoveryAction.command !== "openCreatePost"
+                        ) {
+                          setRecoveryNavigationFrom(currentRoute);
+                        } else {
+                          window.setTimeout(nextTourStep, 0);
+                        }
                       }
                     }}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-brand px-4 text-sm font-semibold text-brand-fg shadow-[0_8px_24px_rgba(255,96,61,0.3)] transition-all hover:brightness-105 press"
