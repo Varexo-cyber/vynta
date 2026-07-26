@@ -71,6 +71,15 @@ export function OnboardingChecklist({ compact = false }: { compact?: boolean }) 
         </div>
         <div className="flex items-center gap-1">
           <button
+            type="button"
+            onClick={hideChecklistWidget}
+            data-testid="skip-onboarding-checklist"
+            className="min-h-11 rounded-full px-3 text-xs font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            aria-label="Checklist overslaan"
+          >
+            Overslaan
+          </button>
+          <button
             onClick={() => setExpanded((v) => !v)}
             className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
             aria-label={expanded ? "Inklappen" : "Uitklappen"}
