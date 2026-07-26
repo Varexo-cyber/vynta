@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useHelp } from "@/components/help/help-provider";
+import { getHelpAction } from "@/lib/help-actions";
 import { cn } from "@/lib/utils";
 
 interface ElementRect {
@@ -22,6 +23,7 @@ export function ProductTour() {
     prevTourStep,
     endTour,
     guidedModeActive,
+    executeAction,
   } = useHelp();
   const [targetRect, setTargetRect] = useState<ElementRect | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -30,7 +32,14 @@ export function ProductTour() {
     const elements = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
     return elements.find((element) => {
       const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom > 0 &&
+        rect.right > 0 &&
+        rect.top < window.innerHeight &&
+        rect.left < window.innerWidth
+      );
     }) ?? null;
   }, []);
 
@@ -73,6 +82,11 @@ export function ProductTour() {
       }
       observedTarget = target;
       if (observedTarget) {
+        observedTarget.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
         observedTarget.addEventListener("click", advanceAfterAction, true);
         observedTarget.addEventListener("input", advanceAfterAction, true);
         observedTarget.addEventListener("change", advanceAfterAction, true);
@@ -95,8 +109,6 @@ export function ProductTour() {
       }
     };
 
-    const initialTarget = getVisibleTarget(currentTourStep.selector);
-    initialTarget?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
     requestAnimationFrame(updateRect);
     pollRef.current = setInterval(updateRect, 250);
 
@@ -127,45 +139,68 @@ export function ProductTour() {
   if (!activeTour || !currentTourStep) return null;
 
   const isLastStep = tourStepIndex >= activeTour.steps.length - 1;
+  const waitsForAction = Boolean(currentTourStep.waitForAction);
+  const recoveryAction = currentTourStep.actionId
+    ? getHelpAction(currentTourStep.actionId)
+    : undefined;
   const padding = 8;
   const popoverWidth = Math.min(340, window.innerWidth - 32);
-  const estimatedPopoverHeight = 230;
-  const preferredTop = targetRect
-    ? currentTourStep.placement === "top"
-      ? targetRect.top - estimatedPopoverHeight - 16
-      : targetRect.top + targetRect.height + padding + 12
-    : 0;
+  const estimatedPopoverHeight = waitsForAction ? 250 : 230;
+  const viewportGap = 16;
+  const targetGap = padding + 12;
 
-  const popoverStyle: React.CSSProperties = targetRect
-    ? {
-        position: "fixed",
-        top: Math.max(16, Math.min(preferredTop, window.innerHeight - estimatedPopoverHeight - 16)),
-        left: Math.max(
-          16,
-          Math.min(
-            targetRect.left + targetRect.width / 2 - popoverWidth / 2,
-            window.innerWidth - popoverWidth - 16
-          )
-        ),
-        maxWidth: `${popoverWidth}px`,
-      }
-    : {
+  const positionPopover = (): React.CSSProperties => {
+    if (!targetRect) {
+      return {
         position: "fixed",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
         maxWidth: `${popoverWidth}px`,
       };
+    }
+
+    const roomAbove = targetRect.top - viewportGap;
+    const roomBelow = window.innerHeight - targetRect.top - targetRect.height - viewportGap;
+    const requestedTop = currentTourStep.placement === "top";
+    const placeAbove = requestedTop
+      ? roomAbove >= estimatedPopoverHeight + targetGap || roomBelow < roomAbove
+      : roomBelow < estimatedPopoverHeight + targetGap && roomAbove > roomBelow;
+    const top = placeAbove
+      ? targetRect.top - estimatedPopoverHeight - targetGap
+      : targetRect.top + targetRect.height + targetGap;
+
+    return {
+      position: "fixed",
+      top: Math.max(
+        viewportGap,
+        Math.min(top, window.innerHeight - estimatedPopoverHeight - viewportGap),
+      ),
+      left: Math.max(
+        viewportGap,
+        Math.min(
+          targetRect.left + targetRect.width / 2 - popoverWidth / 2,
+          window.innerWidth - popoverWidth - viewportGap,
+        ),
+      ),
+      maxWidth: `${popoverWidth}px`,
+    };
+  };
+
+  const popoverStyle = positionPopover();
 
   return (
     <>
       <div
-        className="pointer-events-none fixed inset-0 z-[80] bg-black/45"
+        className="pointer-events-none fixed inset-0 z-[80]"
         aria-hidden
       >
-        {targetRect && (
-          <div
-            className="absolute rounded-xl ring-2 ring-brand transition-all duration-300"
+        {targetRect ? (
+          <motion.div
+            initial={{ opacity: 0.45, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="absolute rounded-xl ring-2 ring-brand"
             style={{
               top: targetRect.top - padding,
               left: targetRect.left - padding,
@@ -174,6 +209,8 @@ export function ProductTour() {
               boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
             }}
           />
+        ) : (
+          <div className="absolute inset-0 bg-black/45" />
         )}
       </div>
 
@@ -208,14 +245,16 @@ export function ProductTour() {
           <h3 className="text-base font-semibold tracking-tight">{currentTourStep.title}</h3>
           <p className="mt-1.5 text-sm leading-relaxed text-muted">{currentTourStep.description}</p>
 
-          {guidedModeActive && currentTourStep.waitForAction && targetRect && (
+          {waitsForAction && targetRect && (
             <p className="mt-2 text-xs font-medium text-brand">
-              Tik op het gemarkeerde onderdeel. De uitleg gaat daarna automatisch verder.
+              Klik op het gemarkeerde onderdeel. Daarna verschijnt automatisch de volgende stap.
             </p>
           )}
           {!targetRect && (
             <p className="mt-2 text-xs font-medium text-brand">
-              Dit onderdeel staat op een andere pagina. Kies Volgende om verder te gaan.
+              {recoveryAction
+                ? "Dit onderdeel staat op een ander scherm. Open dat scherm om de aanwijzing te vervolgen."
+                : "Dit onderdeel is nog niet zichtbaar. Rond de vorige stap af of ga één stap terug."}
             </p>
           )}
 
@@ -238,21 +277,35 @@ export function ProductTour() {
                   <ChevronLeft size={18} />
                 </button>
               )}
-              <button
-                type="button"
-                onClick={handleNext}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-all hover:opacity-90 press"
-              >
-                {isLastStep ? (
-                  <>
-                    Klaar <Check size={16} />
-                  </>
-                ) : (
-                  <>
-                    Volgende <ChevronRight size={16} />
-                  </>
-                )}
-              </button>
+              {waitsForAction ? (
+                !targetRect &&
+                recoveryAction &&
+                currentTourStep.actionId && (
+                  <button
+                    type="button"
+                    onClick={() => executeAction(currentTourStep.actionId!)}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-all hover:opacity-90 press"
+                  >
+                    {recoveryAction.label} <ChevronRight size={16} />
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-semibold text-background transition-all hover:opacity-90 press"
+                >
+                  {isLastStep ? (
+                    <>
+                      Klaar <Check size={16} />
+                    </>
+                  ) : (
+                    <>
+                      Volgende <ChevronRight size={16} />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </motion.div>

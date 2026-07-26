@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen w-full bg-background">
       {/* Desktop sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col border-r border-border bg-sidebar lg:flex">
-        <div className="flex flex-1 flex-col px-5 py-7">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-7">
           <SidebarBrandBackup />
 
           <nav className="flex flex-col gap-1">
