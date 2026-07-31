@@ -34,7 +34,7 @@ function NativeWelcome() {
         <Link href="/auth" className="native-first-run__secondary press">
           Inloggen
         </Link>
-        <p>Gratis voor bedrijven in Nederland.</p>
+        <p>Voor bedrijven in Nederland.</p>
       </footer>
     </main>
   );

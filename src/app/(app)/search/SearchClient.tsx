@@ -41,7 +41,7 @@ export function SearchClient({ posts }: { posts: Post[] }) {
 
   return (
     <div className="search-page mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
-      <h1 className="search-page-heading mb-5 text-3xl font-bold tracking-tight">Ontdekken</h1>
+      <div className="mb-6 border-b border-border pb-5"><p className="vynta-kicker">Vind wat je bedrijf nodig heeft</p><h1 className="search-page-heading mt-2 text-3xl font-bold tracking-tight">Ontdekken</h1></div>
 
       {startingConversation && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
@@ -57,7 +57,7 @@ export function SearchClient({ posts }: { posts: Post[] }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 focus-within:border-border-strong">
+      <div className="flex items-center gap-3 rounded-md border border-border bg-surface px-4 py-3.5 focus-within:border-border-strong">
         <SearchIcon size={20} className="text-muted" />
         <input
           autoFocus
@@ -80,13 +80,13 @@ export function SearchClient({ posts }: { posts: Post[] }) {
         </div>
       )}
 
-      <div className="mt-6 flex gap-1 rounded-full bg-surface-2/70 p-1">
+      <div className="mt-6 flex gap-1 border-b border-border bg-transparent p-0">
         {(["companies", "posts"] as const).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
-            className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all press ${
-              mode === m ? "bg-foreground text-background" : "text-muted hover:text-foreground"
+            className={`flex-1 border-b-2 px-3 py-3 text-sm font-semibold transition-colors press ${
+              mode === m ? "border-brand text-foreground" : "border-transparent text-muted hover:text-foreground"
             }`}
           >
             {m === "companies" ? "Bedrijven" : "Posts"} · {m === "companies" ? companyResults.length : postResults.length}

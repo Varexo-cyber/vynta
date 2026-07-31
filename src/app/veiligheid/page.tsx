@@ -27,7 +27,7 @@ export default function SafetyPage() {
           <Reveal>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e25231]">Veiligheid en vertrouwen</p>
             <h1 className="mt-5 text-[47px] font-bold leading-[1.06] tracking-[-0.055em] sm:text-[66px]">Vertrouwen ontstaat niet door een mooi vinkje.</h1>
-            <p className="mt-6 max-w-2xl text-[18px] leading-8 text-[#626872]">Het ontstaat wanneer duidelijk is met wie je praat, je ongewenst gedrag kunt melden en platformbeheer zichtbaar verantwoordelijkheid neemt. Gratis toegang verandert niets aan die standaard.</p>
+            <p className="mt-6 max-w-2xl text-[18px] leading-8 text-[#626872]">Het ontstaat wanneer duidelijk is met wie je praat, je ongewenst gedrag kunt melden en platformbeheer zichtbaar verantwoordelijkheid neemt.</p>
           </Reveal>
           <Reveal delay={0.12} className="rounded-2xl border border-[#dfe3e7] bg-[#f6f7f8] p-6 sm:p-8">
             <div className="flex items-center gap-4 border-b border-[#dfe3e7] pb-6"><span className="grid h-12 w-12 place-items-center rounded-xl bg-[#17191c] text-white"><ShieldCheck size={24} /></span><div><p className="font-bold">Veiligheid is een proces</p><p className="mt-1 text-sm text-[#737a84]">Controleren, melden, beoordelen en handelen.</p></div></div>

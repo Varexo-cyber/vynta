@@ -173,7 +173,7 @@ export function CompanyProfileHeader({
         <ArrowLeft size={16} /> Terug
       </Link>
 
-      <div className="overflow-hidden rounded-3xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-md border border-border bg-surface">
         {/* Banner */}
         <div className="relative h-[140px] w-full sm:h-[200px] lg:h-[260px]">
           {bannerUrl ? (
@@ -189,12 +189,7 @@ export function CompanyProfileHeader({
               }}
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-surface-2 via-surface to-surface-2 dark:from-surface-3 dark:via-surface-2 dark:to-surface-3">
-              <div className="absolute inset-0 opacity-30 dark:opacity-20">
-                <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-foreground/[0.04] blur-3xl dark:bg-orange-500/10" />
-                <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-foreground/[0.03] blur-3xl dark:bg-orange-500/5" />
-              </div>
-            </div>
+            <div className="h-full w-full bg-[#121210] [background-image:linear-gradient(90deg,rgba(255,255,255,.07)_1px,transparent_1px)] [background-size:72px_100%]" />
           )}
 
           {isMe && (
@@ -214,7 +209,7 @@ export function CompanyProfileHeader({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-5">
             {/* Logo overlapping banner */}
             <div className="relative -mt-12 sm:-mt-14">
-              <div className="rounded-full bg-surface ring-4 ring-surface">
+              <div className="rounded-md bg-surface ring-4 ring-surface">
                 <CompanyAvatar
                   name={company.name}
                   color={company.logoColor}
@@ -270,7 +265,7 @@ export function CompanyProfileHeader({
               <button
                 onClick={() => router.push("/settings?edit=company")}
                 data-tour-id="company-edit"
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
               >
                 Profiel bewerken
               </button>
@@ -280,7 +275,7 @@ export function CompanyProfileHeader({
                   onClick={onFollow}
                   data-tour-id="company-follow"
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
+                    "inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold transition-colors",
                     following
                       ? "border border-border bg-surface-2 text-foreground"
                       : "bg-foreground text-background hover:opacity-90"
@@ -292,7 +287,7 @@ export function CompanyProfileHeader({
                   onClick={onMessage}
                   disabled={startingConversation}
                   data-tour-id="company-message"
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-surface px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-2"
                 >
                   <MessageCircle size={16} /> {startingConversation ? "Openen…" : "Bericht"}
                 </button>

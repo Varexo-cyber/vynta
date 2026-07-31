@@ -30,7 +30,7 @@ export function CompanyAvatar({
     return (
       <div
         className={cn(
-          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full text-white shadow-sm ring-1 ring-black/5 transition-transform duration-200",
+          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-md text-white ring-1 ring-black/10 transition-transform duration-200",
           className
         )}
         style={{ width: size, height: size, background: color }}
@@ -58,7 +58,7 @@ export function CompanyAvatar({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full text-white shadow-sm ring-1 ring-black/5 transition-transform duration-200",
+        "flex shrink-0 items-center justify-center rounded-md text-white ring-1 ring-black/10 transition-transform duration-200",
         className
       )}
       style={{ width: size, height: size, background: color }}
@@ -88,8 +88,8 @@ export function VerifiedBadge({ size = 15 }: { size?: number }) {
     <BadgeCheck
       size={size}
       className="shrink-0"
-      style={{ color: "var(--brand-purple)", fill: "color-mix(in srgb, var(--brand-purple) 14%, transparent)" }}
-      aria-label="Verified"
+      style={{ color: "var(--brand)", fill: "color-mix(in srgb, var(--brand) 12%, transparent)" }}
+      aria-label="Geverifieerd"
     />
   );
 }
@@ -148,12 +148,10 @@ export function Button({
   className,
   ...props
 }: ButtonProps) {
-  const isShiny = variant === "primary" || variant === "accent";
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background press",
-        isShiny && "shimmer",
+        "inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors duration-200 disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background press",
         size === "sm" && "h-9 px-4 text-sm",
         size === "md" && "h-10 px-5 text-sm",
         size === "lg" && "h-12 px-7 text-base",
@@ -183,10 +181,10 @@ export function Pill({
   return (
     <button
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 press",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-2 text-sm font-semibold transition-colors duration-200 press",
         active
-          ? "bg-foreground text-background ring-1 ring-inset ring-brand/25"
-          : "border border-border bg-transparent text-muted hover:border-border-strong hover:text-foreground hover:bg-surface-2",
+          ? "bg-foreground text-background"
+          : "border border-border bg-surface text-muted hover:border-border-strong hover:text-foreground",
         className
       )}
       {...props}

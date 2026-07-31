@@ -13,7 +13,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vynta — Het zakelijke netwerk van Nederland",
   description:
-    "Het gratis zakelijke socialmediaplatform waar Nederlandse bedrijven zich presenteren, kansen vinden en rechtstreeks met elkaar in contact komen.",
+    "Het zakelijke netwerk waar Nederlandse bedrijven zich presenteren, kansen vinden en rechtstreeks met elkaar in contact komen.",
   manifest: "/manifest.json",
   icons: {
     apple: "/apple-touch-icon.png?v=3",
