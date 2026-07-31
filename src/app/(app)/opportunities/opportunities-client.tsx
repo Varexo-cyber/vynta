@@ -161,7 +161,7 @@ export function OpportunitiesClient({
             Vind opdrachten, leveranciers en samenwerkingen die aansluiten op je bedrijf.
           </p>
         </div>
-        <Link href="/opportunities/new" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-brand-fg transition-opacity hover:opacity-90 focus-ring press">
+        <Link href="/opportunities/new" className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-bold text-brand-fg transition-colors hover:bg-foreground focus-ring press">
           <Plus size={17} /> Plaats een kans
         </Link>
       </header>
@@ -191,8 +191,8 @@ export function OpportunitiesClient({
           <form className="relative flex-1" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); updateQuery({ q: String(data.get("q") ?? "") || undefined }); }}>
             <span className="sr-only">Kansen zoeken</span>
             <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-            <input key={filters.query ?? ""} name="q" defaultValue={filters.query ?? ""} placeholder="Zoek naar opdrachten, partners, leveranciers of diensten" className="h-12 w-full rounded-xl border border-border bg-surface pl-11 pr-20 text-sm outline-none transition-colors placeholder:text-subtle focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5" />
-            <button type="submit" className="absolute right-1 top-1/2 h-10 min-w-12 -translate-y-1/2 rounded-full px-3 text-xs font-semibold text-muted hover:bg-surface-2 hover:text-foreground">Zoek</button>
+            <input key={filters.query ?? ""} name="q" defaultValue={filters.query ?? ""} placeholder="Zoek naar opdrachten, partners, leveranciers of diensten" className="h-12 w-full rounded-md border border-border bg-surface pl-11 pr-20 text-sm outline-none transition-colors placeholder:text-subtle focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5" />
+            <button type="submit" className="absolute right-1 top-1/2 h-10 min-w-12 -translate-y-1/2 rounded-sm px-3 text-xs font-bold text-muted hover:bg-surface-2 hover:text-foreground">Zoek</button>
           </form>
           <button type="button" onClick={() => setShowFilters((open) => !open)} className={cn("inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-colors focus-ring", showFilters || activeFilters.length ? "border-foreground bg-foreground text-background" : "border-border bg-surface hover:border-border-strong")} aria-expanded={showFilters}>
             <Filter size={17} /> Filters {activeFilters.length > 0 && <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-brand-fg">{activeFilters.length}</span>}

@@ -16,7 +16,6 @@ import { OnboardingChecklist } from "@/components/help/onboarding-checklist";
 import { PostCard } from "@/components/need-card";
 import { CompanyAvatar, Pill } from "@/components/ui/primitives";
 import { FeedRightColumn } from "@/components/feed-right-column";
-import { VyntaPromoCarousel } from "@/components/vynta-promo-carousel";
 import { networkIcon } from "@/lib/network-icon";
 import { POST_TYPES, POST_TYPE_ORDER } from "@/lib/need-types";
 import type { Post, PostType } from "@/lib/types";
@@ -66,16 +65,17 @@ export function FeedClient({ posts }: { posts: Post[] }) {
   }, [posts, filter, me, myNetworkIds, companyById, followingIds]);
 
   return (
-    <div className="feed-page mx-auto flex w-full max-w-[1320px] px-4 pb-32 pt-5 lg:pt-8">
+    <div className="feed-page mx-auto flex w-full max-w-[1320px] gap-8 px-4 pb-32 pt-5 lg:px-8 lg:pt-8">
       {/* Main feed */}
       <div className="min-w-0 flex-1">
         <div className="mx-auto w-full max-w-[800px]">
           {/* Header */}
-          <div className="feed-page-heading mb-6">
-            <h1 className="text-[28px] font-bold tracking-tight">
+          <div className="feed-page-heading mb-7 border-b border-border-strong pb-5">
+            <p className="vynta-kicker">Jouw werkdag</p>
+            <h1 className="mt-3 text-[32px] font-bold tracking-[-0.045em]">
               {greeting()}, {me.name}
             </h1>
-            <p className="mt-0.5 text-[17px] text-muted">Dit gebeurt vandaag in jouw netwerk.</p>
+            <p className="mt-1 text-[16px] text-muted">Vragen, updates en kansen uit je zakelijke netwerk.</p>
           </div>
 
           {/* Personal recommendation */}
@@ -87,15 +87,15 @@ export function FeedClient({ posts }: { posts: Post[] }) {
 
           {/* Network stories */}
           {myNetworks.length > 0 && (
-            <div className="network-story-strip no-scrollbar -mx-4 mb-6 flex gap-3 overflow-x-auto px-4 pb-2">
+            <div className="network-story-strip no-scrollbar -mx-4 mb-7 flex gap-2 overflow-x-auto px-4 pb-2">
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex shrink-0 flex-col items-center gap-2"
+                className="group flex min-w-[132px] shrink-0 items-center gap-3 rounded-md border border-dashed border-border-strong bg-transparent px-3 py-3 text-left"
               >
-                <span className="grid h-16 w-16 place-items-center rounded-full border-2 border-dashed border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-foreground sm:h-[80px] sm:w-[80px]">
-                  <span className="text-3xl">+</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-foreground text-background transition-colors group-hover:bg-brand group-hover:text-white">
+                  <span className="text-xl">+</span>
                 </span>
-                <span className="max-w-[80px] truncate text-xs font-medium">Plaatsen</span>
+                <span><strong className="block text-xs">Nieuw bericht</strong><small className="mt-0.5 block text-[10px] text-muted">Deel een signaal</small></span>
               </button>
               {myNetworks.slice(0, 6).map((n) => {
                 const Icon = networkIcon(n.name, n.type);
@@ -103,31 +103,31 @@ export function FeedClient({ posts }: { posts: Post[] }) {
                   <Link
                     key={n.id}
                     href={`/networks/${n.id}`}
-                    className="group flex shrink-0 flex-col items-center gap-2"
+                    className="group flex min-w-[152px] shrink-0 items-center gap-3 rounded-md border border-border bg-surface px-3 py-3 text-left transition-colors hover:border-border-strong"
                   >
-                    <span className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30 sm:h-[80px] sm:w-[80px]">
-                      <Icon size={28} strokeWidth={1.5} className="transition-colors group-hover:text-brand" />
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-surface-2 text-muted transition-colors group-hover:bg-foreground group-hover:text-background">
+                      <Icon size={19} strokeWidth={1.7} />
                     </span>
-                    <span className="max-w-[80px] truncate text-xs font-medium text-muted transition-colors group-hover:text-foreground">{n.name}</span>
+                    <span className="min-w-0"><strong className="block truncate text-xs">{n.name}</strong><small className="mt-0.5 block text-[10px] uppercase tracking-wide text-subtle">Netwerk</small></span>
                   </Link>
                 );
               })}
               {myNetworks.length > 6 && (
                 <Link
                   href="/networks"
-                  className="group flex shrink-0 flex-col items-center gap-2"
+                  className="group flex min-w-[128px] shrink-0 items-center gap-3 rounded-md border border-border bg-surface px-3 py-3"
                 >
-                  <span className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted ring-1 ring-border transition-all hover:scale-105 hover:bg-border hover:ring-brand/30 sm:h-[80px] sm:w-[80px]">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-surface-2 text-muted transition-colors group-hover:bg-foreground group-hover:text-background">
                     <span className="text-sm font-semibold">+{myNetworks.length - 6}</span>
                   </span>
-                  <span className="max-w-[80px] truncate text-xs font-medium text-muted transition-colors group-hover:text-foreground">Meer netwerken</span>
+                  <span className="text-xs font-semibold">Alle netwerken</span>
                 </Link>
               )}
             </div>
           )}
 
           {/* Composer */}
-          <div className="feed-composer mb-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div className="feed-composer mb-7 overflow-hidden border border-border bg-surface">
             <button
               onClick={() => setCreateOpen(true)}
               className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-surface-2"
@@ -139,14 +139,14 @@ export function FeedClient({ posts }: { posts: Post[] }) {
                 website={me.website}
                 size={48}
               />
-              <span className="text-[17px] text-muted">Deel iets met je netwerk…</span>
+              <span className="text-[16px] text-muted">Wat moet jouw netwerk vandaag weten?</span>
             </button>
             <div className="no-scrollbar flex items-center gap-1 overflow-x-auto border-t border-border px-2 py-2">
               {COMPOSER_ACTIONS.map((action) => (
                 <button
                   key={action.key}
                   onClick={() => setCreateOpen(true)}
-                  className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-4"
+                  className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-sm px-3.5 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-foreground sm:px-4"
                 >
                   <action.icon size={18} />
                   {action.label}
@@ -193,18 +193,9 @@ export function FeedClient({ posts }: { posts: Post[] }) {
                   className="border-t border-border first:border-t-0"
                 >
                   <PostCard post={post} index={i} />
-                  {i === 2 && (
-                    <div className="2xl:hidden">
-                      <VyntaPromoCarousel variant="inline" />
-                    </div>
-                  )}
                 </motion.article>
               ))
             )}
-          </div>
-
-          <div className="mt-6 2xl:hidden">
-            <VyntaPromoCarousel variant="inline" />
           </div>
 
           <p className="mt-12 text-center text-xs text-subtle">

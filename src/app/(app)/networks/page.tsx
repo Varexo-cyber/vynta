@@ -41,10 +41,10 @@ function NetworkCardLarge({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.25) }}
-      className="group flex flex-col rounded-3xl border border-border bg-surface p-5 transition-all hover:border-border-strong hover:bg-surface-2/40 hover:shadow-sm"
+      className="group flex flex-col rounded-md border border-border bg-surface p-5 transition-colors hover:border-border-strong hover:bg-surface-2/40"
     >
       <div className="flex items-start gap-4">
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-surface-2 text-[22px] transition-colors group-hover:bg-surface-3">
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-sm bg-surface-2 text-[22px] transition-colors group-hover:bg-surface-3">
           {emoji}
         </span>
         <div className="min-w-0 flex-1">
@@ -169,8 +169,9 @@ export default function NetworksPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 pb-32 pt-5 lg:pt-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Netwerken</h1>
+      <div className="mb-8 border-b border-border pb-6">
+        <p className="vynta-kicker">Jouw zakelijke omgeving</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">Netwerken</h1>
         <p className="mt-2 max-w-2xl text-base text-muted">
           De netwerken waar jouw bedrijf toe behoort, en branches of gemeenten die je volgt.
         </p>

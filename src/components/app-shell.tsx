@@ -24,11 +24,10 @@ import { useTheme } from "./theme-provider";
 import { useApp } from "./app-store";
 import { CompanyAvatar } from "./ui/primitives";
 import { CreatePostModal } from "./create-post-modal";
-import { SidebarBrandBackup } from "./sidebar-brand-backup";
 import { ThemedLogo } from "./themed-logo";
 import { VyntaAssistant } from "./help/vynta-assistant";
 import { ProductTour } from "./help/product-tour";
-import { VyntaMark } from "./vynta-brand";
+import { VyntaBrand, VyntaMark } from "./vynta-brand";
 
 const NAV = [
   { href: "/feed", label: "Feed", icon: Home, tourId: "feed" },
@@ -66,11 +65,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     href === "/feed" ? pathname === "/feed" || pathname === "/" : pathname.startsWith(href);
 
   return (
-    <div className="relative min-h-screen w-full bg-background">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-clip bg-background">
       {/* Desktop sidebar */}
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col border-r border-border bg-sidebar lg:flex">
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-7">
-          <SidebarBrandBackup />
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[248px] flex-col border-r border-white/10 bg-sidebar text-white lg:flex">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6">
+          <Link href="/feed" className="mb-8 block border-b border-white/10 px-2 pb-6" aria-label="Vynta feed">
+            <VyntaBrand size={42} textClassName="text-white" />
+            <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Bedrijvennetwerk · Nederland</p>
+          </Link>
 
           <nav className="flex flex-col gap-1">
             {NAV.map((item) => {
@@ -92,19 +94,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             onClick={() => { setCreateType(null); setCreateOpen(true); }}
             data-tour-id="create-post"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-foreground py-3 text-sm font-semibold text-background transition-all hover:opacity-90 press shimmer"
+            className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-brand px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#ff633d] press"
           >
             <Plus size={18} strokeWidth={2.5} />
             Plaats bericht
           </button>
 
-          <div className="mt-auto flex flex-col gap-2">
+          <div className="mt-auto flex flex-col gap-1 border-t border-white/10 pt-4">
             {canManagePlatform && (
               <Link
                 href="/owner"
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname.startsWith("/owner") ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname.startsWith("/owner") ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"
                 )}
               >
                 <ShieldCheck size={20} />
@@ -114,8 +116,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/saved"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                pathname.startsWith("/saved") ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                pathname.startsWith("/saved") ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"
               )}
             >
               <Bookmark size={20} />
@@ -124,8 +126,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/settings"
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                pathname.startsWith("/settings") ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                pathname.startsWith("/settings") ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"
               )}
             >
               <Settings size={20} />
@@ -133,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <button
               onClick={toggle}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+              className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/5 hover:text-white"
             >
               {resolved === "dark" ? <Sun size={20} /> : <Moon size={20} />}
               {resolved === "dark" ? "Licht thema" : "Donker thema"}
@@ -144,18 +146,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link
           href={`/company/${me.id}`}
           data-tour-id="company-profile"
-          className="flex items-center gap-3 border-t border-border p-5 transition-colors hover:bg-surface-2"
+          className="flex items-center gap-3 border-t border-white/10 p-5 transition-colors hover:bg-white/5"
         >
           <CompanyAvatar name={me.name} color={me.logoColor} logoUrl={me.logoUrl} website={me.website} size={42} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{me.name}</p>
-            <p className="truncate text-xs text-muted">Mijn bedrijf</p>
+            <p className="truncate text-sm font-semibold text-white">{me.name}</p>
+            <p className="truncate text-xs text-white/45">Mijn bedrijf</p>
           </div>
         </Link>
       </aside>
 
       {/* Mobile header */}
-      <header className="mobile-app-header fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/80 px-4 backdrop-blur-xl lg:hidden">
+      <header className="mobile-app-header fixed inset-x-0 top-0 z-40 flex h-14 max-w-full items-center justify-between border-b border-border bg-surface px-3 lg:hidden">
         <Link href="/feed" className="flex min-w-0 items-center gap-2.5" aria-label="Naar je feed">
           <VyntaMark size={31} src={resolved === "dark" ? "/logoaa.png" : "/logo.png"} />
           <div className="min-w-0">
@@ -163,7 +165,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-subtle">Vynta</p>
           </div>
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <Link
             href="/help"
             className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
@@ -203,12 +205,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="app-main min-h-screen pt-14 pb-20 lg:pb-0 lg:pl-[260px]">
+      <main className="app-main min-h-screen pt-14 pb-20 lg:pb-0 lg:pl-[248px]">
         {children}
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-border bg-surface/95 px-1 backdrop-blur-xl lg:hidden" aria-label="Hoofdnavigatie">
+      <nav className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 grid max-w-full grid-cols-5 items-center border-t border-border bg-surface px-1 lg:hidden" aria-label="Hoofdnavigatie">
         {MOBILE_NAV.slice(0, 2).map((item) => (
           <BottomItem key={item.href} item={item} active={isActive(item.href)} badge={item.href === "/messages" ? unreadMessages : item.href === "/opportunities" ? unreadOpportunities : 0} />
         ))}
@@ -241,7 +243,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="pointer-events-auto flex w-full items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xl"
+              className="pointer-events-auto flex w-full items-start gap-3 rounded-md border border-border bg-surface p-4 shadow-lg"
             >
               <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" />
               <div className="flex-1">
@@ -264,14 +266,14 @@ function NavRow({ item, active, badge }: { item: typeof NAV[0]; active: boolean;
     <Link
       href={item.href}
       className={cn(
-        "group relative flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-semibold transition-all duration-200",
-        active ? "bg-surface-2 text-foreground" : "text-muted hover:bg-surface-2 hover:text-foreground"
+        "group relative flex items-center gap-3 rounded-md px-3 py-3 text-[14px] font-semibold transition-colors",
+        active ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5 hover:text-white"
       )}
     >
-      {active && <span className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-brand" />}
+      {active && <span className="absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 bg-brand" />}
       <span className={cn(
-        "grid h-9 w-9 place-items-center rounded-lg transition-colors",
-        active ? "bg-foreground text-background" : "bg-surface-2 text-muted group-hover:text-foreground"
+        "grid h-8 w-8 place-items-center rounded-sm transition-colors",
+        active ? "bg-brand text-white" : "bg-white/5 text-white/45 group-hover:text-white"
       )}>
         <item.icon size={20} strokeWidth={active ? 2.4 : 2} />
       </span>
