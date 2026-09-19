@@ -18,6 +18,8 @@ import type { PostType, LinkPreviewData, PostAttachment, DraftData, Draft } from
 import { sanitizeHtml } from "./rich-text";
 import { getMunicipalityByName, getProvinceByName } from "./dutch-networks";
 import { clearPendingGoogleSignup, getPendingGoogleIdentity } from "./google-auth";
+import { KVK_MELDINGEN, checkKvkVorm, normalizeKvk } from "./kvk";
+import { notifyAdmins, reviewBericht } from "./notify";
 
 function slugify(name: string) {
   return (
@@ -35,6 +37,60 @@ const COLORS = ["#6d28d9", "#2563eb", "#16a34a", "#0891b2", "#d97706", "#7c3aed"
 
 type Result = { ok: boolean; error?: string };
 const DUMMY_PASSWORD_HASH = "$2b$10$y4v/lwfhyE3cUZ4oqO6EuOl1zGwdtdgdES9tFN3VMhKX27kRjQRUC";
+
+
+/* ----------------------------- KVK ----------------------------- */
+
+/**
+ * Eén account per KVK, en zonder KVK mag je door maar sta je onder review.
+ *
+ * DE KEUZE DIE HIERACHTER ZIT. Je zou iemand zonder KVK kunnen tegenhouden. Dat
+ * is veiliger en het is ook de snelste manier om een nieuwe gebruiker kwijt te
+ * raken: hij staat in een wachtkamer, hoort niets, en komt niet terug. Dus hij
+ * mag door -- zijn bedrijf staat alleen als `pending` gemarkeerd en de beheerder
+ * krijgt er bericht van.
+ *
+ * Staat het KVK-nummer er al, dan is dat WEL een blokkade. Twee accounts op
+ * hetzelfde bedrijf maakt elke match dubbel en niemand weet meer welk account
+ * de echte is. De melding vertelt wat de gebruiker dan moet doen; zie
+ * `KVK_MELDINGEN`.
+ */
+type KvkUitkomst =
+  | { ok: true; normalized: string | null; status: "approved" | "pending"; reden: string | null }
+  | { ok: false; error: string };
+
+async function bepaalKvk(raw: string | null | undefined): Promise<KvkUitkomst> {
+  const ingevuld = (raw ?? "").trim();
+
+  // Niets ingevuld: handmatig aangemeld bedrijf. Mag door, gaat in review.
+  if (!ingevuld) {
+    return { ok: true, normalized: null, status: "pending", reden: "Aangemeld zonder KVK-nummer" };
+  }
+
+  const vorm = checkKvkVorm(ingevuld);
+  if (!vorm.ok) return { ok: false, error: vorm.melding };
+
+  const bezet = await sql`
+    SELECT 1 FROM companies WHERE kvk_normalized = ${vorm.normalized} LIMIT 1`;
+  if (bezet.length > 0) return { ok: false, error: KVK_MELDINGEN.bezet };
+
+  return { ok: true, normalized: vorm.normalized, status: "approved", reden: null };
+}
+
+/**
+ * Twee mensen die op dezelfde seconde hetzelfde KVK invullen komen allebei
+ * langs de controle hierboven en botsen pas op de unieke index. Dan hoort er
+ * dezelfde uitleg te komen als bij de nette controle, en niet "er ging iets mis".
+ */
+function isKvkBotsing(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "23505" &&
+      String((error as { constraint_name?: string }).constraint_name ?? "").includes("kvk"),
+  );
+}
 
 /* ----------------------------- auth ----------------------------- */
 export async function signUp(input: {
@@ -84,6 +140,9 @@ export async function signUp(input: {
   const existing = await sql`SELECT 1 FROM users WHERE email = ${email} LIMIT 1`;
   if (existing.length > 0) return { ok: false, error: "Dit e-mailadres is al in gebruik." };
 
+  const kvk = await bepaalKvk(input.kvkNumber);
+  if (!kvk.ok) return { ok: false, error: kvk.error };
+
   let handle = slugify(input.companyName);
   const taken = await sql`SELECT 1 FROM companies WHERE handle = ${handle} LIMIT 1`;
   if (taken.length > 0) handle = `${handle}-${Math.random().toString(36).slice(2, 6)}`;
@@ -107,7 +166,8 @@ export async function signUp(input: {
           name, handle, logo_color, industry,
           city, province, country, municipality, municipality_id, address, postcode,
           description, website, phone, email,
-          kvk_number, vat_number, logo_url
+          kvk_number, kvk_normalized, vat_number, logo_url,
+          review_status, review_reason, review_requested_at
         )
         VALUES (
           ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry},
@@ -115,7 +175,8 @@ export async function signUp(input: {
           ${input.municipality || null}, ${input.municipalityId || null},
           ${input.address}, ${input.postcode},
           ${input.description?.trim() || ""}, ${input.website || null}, ${input.phone}, ${email},
-          ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
+          ${input.kvkNumber || null}, ${kvk.normalized}, ${input.vatNumber || null}, ${input.logoUrl || null},
+          ${kvk.status}, ${kvk.reden}, ${kvk.status === "pending" ? sql`now()` : null}
         )
         RETURNING id`;
       const companyId = company.id as string;
@@ -134,15 +195,64 @@ export async function signUp(input: {
       return user.id as string;
     });
   } catch (error) {
+    if (isKvkBotsing(error)) return { ok: false, error: KVK_MELDINGEN.bezet };
     if (error && typeof error === "object" && "code" in error && error.code === "23505") {
       return { ok: false, error: "Dit e-mailadres of deze bedrijfsnaam is al in gebruik." };
     }
     throw error;
   }
 
+  await meldReviewAan(kvk, {
+    email,
+    naam: input.companyName.trim(),
+    telefoon: input.phone,
+    adres: input.address,
+    postcode: input.postcode,
+    stad: input.city,
+    provincie: input.province,
+    sector: input.industry,
+    website: input.website,
+    kvkRuw: input.kvkNumber,
+  });
+
   await createSession(userId);
 
   return { ok: true };
+}
+
+/**
+ * De beheerder een bericht sturen als dit account onder review staat.
+ *
+ * NA de transactie en niet erin: een mislukte mail mag geen aanmelding
+ * terugdraaien. `notifyAdmins` slaat het bericht eerst op en gooit nooit, dus
+ * ook als er nog geen mailbox is raakt er niets kwijt.
+ */
+async function meldReviewAan(
+  kvk: Extract<KvkUitkomst, { ok: true }>,
+  bedrijf: {
+    email: string; naam: string; telefoon: string; adres: string; postcode: string;
+    stad: string; provincie: string; sector: string; website?: string | null;
+    kvkRuw?: string | null;
+  },
+) {
+  if (kvk.status !== "pending") return;
+  const [row] = await sql`SELECT id FROM companies WHERE email = ${bedrijf.email} ORDER BY created_at DESC LIMIT 1`;
+  await notifyAdmins(
+    reviewBericht({
+      id: (row?.id as string) ?? "onbekend",
+      naam: bedrijf.naam,
+      email: bedrijf.email,
+      telefoon: bedrijf.telefoon,
+      adres: bedrijf.adres,
+      postcode: bedrijf.postcode,
+      stad: bedrijf.stad,
+      provincie: bedrijf.provincie,
+      sector: bedrijf.sector,
+      website: bedrijf.website ?? null,
+      kvkRuw: bedrijf.kvkRuw ?? null,
+      reden: kvk.reden ?? "Onder review",
+    }),
+  );
 }
 
 export async function signUpWithGoogle(input: {
@@ -187,6 +297,9 @@ export async function signUpWithGoogle(input: {
   if (!input.industry.trim()) return { ok: false, error: "Sector is verplicht." };
   if (input.country.trim().toLowerCase() !== "nederland") return { ok: false, error: "Vynta is voorlopig alleen beschikbaar voor Nederlandse bedrijven." };
 
+  const kvk = await bepaalKvk(input.kvkNumber);
+  if (!kvk.ok) return { ok: false, error: kvk.error };
+
   let handle = slugify(input.companyName);
   const taken = await sql`SELECT 1 FROM companies WHERE handle = ${handle} LIMIT 1`;
   if (taken.length > 0) handle = `${handle}-${Math.random().toString(36).slice(2, 6)}`;
@@ -218,12 +331,15 @@ export async function signUpWithGoogle(input: {
         INSERT INTO companies (
           name, handle, logo_color, industry, city, province, country, municipality,
           municipality_id, address, postcode, description, website, phone, email,
-          kvk_number, vat_number, logo_url
+          kvk_number, kvk_normalized, vat_number, logo_url,
+          review_status, review_reason, review_requested_at
         ) VALUES (
           ${input.companyName.trim()}, ${handle}, ${color}, ${input.industry}, ${input.city},
           ${input.province}, ${input.country}, ${input.municipality || null}, ${input.municipalityId || null},
           ${input.address}, ${input.postcode}, ${input.description?.trim() || ""}, ${input.website || null},
-          ${input.phone}, ${identity.email}, ${input.kvkNumber || null}, ${input.vatNumber || null}, ${input.logoUrl || null}
+          ${input.phone}, ${identity.email}, ${input.kvkNumber || null}, ${kvk.normalized},
+          ${input.vatNumber || null}, ${input.logoUrl || null},
+          ${kvk.status}, ${kvk.reden}, ${kvk.status === "pending" ? sql`now()` : null}
         ) RETURNING id
       `;
       const companyId = company.id as string;
@@ -241,9 +357,23 @@ export async function signUpWithGoogle(input: {
   } catch (error) {
     if (error instanceof Error && error.message === "OAUTH_INTENT_EXPIRED") return { ok: false, error: "Je Google-koppeling is verlopen. Koppel Google opnieuw." };
     if (error instanceof Error && error.message === "OAUTH_ACCOUNT_EXISTS") return { ok: false, error: "Dit Google-account is al gekoppeld. Log in via de inlogpagina." };
+    if (isKvkBotsing(error)) return { ok: false, error: KVK_MELDINGEN.bezet };
     if (error && typeof error === "object" && "code" in error && error.code === "23505") return { ok: false, error: "Dit e-mailadres of deze bedrijfsnaam is al in gebruik." };
     throw error;
   }
+
+  await meldReviewAan(kvk, {
+    email: identity.email,
+    naam: input.companyName.trim(),
+    telefoon: input.phone,
+    adres: input.address,
+    postcode: input.postcode,
+    stad: input.city,
+    provincie: input.province,
+    sector: input.industry,
+    website: input.website,
+    kvkRuw: input.kvkNumber,
+  });
 
   await createSession(userId);
   await clearPendingGoogleSignup();
@@ -285,6 +415,19 @@ export async function updateCompany(input: {
   if (input.companyName !== undefined && !input.companyName.trim())
     return { ok: false, error: "Bedrijfsnaam mag niet leeg zijn." };
 
+  // DEZELFDE REGEL ALS BIJ HET AANMELDEN, en dat is precies waarom hij nodig is.
+  // Zonder deze controle neemt iemand via /settings alsnog het KVK-nummer van
+  // een ander over -- de voordeur op slot en het keukenraam open.
+  const kvkIngevuld = (input.kvkNumber ?? "").trim();
+  if (kvkIngevuld) {
+    const vorm = checkKvkVorm(kvkIngevuld);
+    if (!vorm.ok) return { ok: false, error: vorm.melding };
+    const bezet = await sql`
+      SELECT 1 FROM companies
+       WHERE kvk_normalized = ${vorm.normalized} AND id <> ${companyId} LIMIT 1`;
+    if (bezet.length > 0) return { ok: false, error: KVK_MELDINGEN.bezet };
+  }
+
   await sql`
     UPDATE companies SET
       name        = COALESCE(${input.companyName?.trim() ?? null}, name),
@@ -300,6 +443,7 @@ export async function updateCompany(input: {
       municipality = COALESCE(${input.municipality ?? null}, municipality),
       municipality_id = COALESCE(${input.municipalityId ?? null}, municipality_id),
       kvk_number  = ${input.kvkNumber ?? null},
+      kvk_normalized = ${normalizeKvk(input.kvkNumber)},
       vat_number  = ${input.vatNumber ?? null}
     WHERE id = ${companyId}
   `;

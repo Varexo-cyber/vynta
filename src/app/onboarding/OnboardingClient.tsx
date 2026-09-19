@@ -107,6 +107,9 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
   const [municipalityId, setMunicipalityId] = useState<string | undefined>(undefined);
   const [industry, setIndustry] = useState("");
   const [kvkNumber, setKvkNumber] = useState("");
+  // Bewust apart van `kvkNumber`: een leeg veld betekent "nog niet ingevuld",
+  // dit betekent "ik heb er geen". Dat verschil bepaalt of iemand door mag.
+  const [zonderKvk, setZonderKvk] = useState(false);
   const [vatNumber, setVatNumber] = useState("");
   const [selectedNetworks, setSelectedNetworks] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
@@ -278,10 +281,23 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
     );
   };
 
+  // DE KVK-CONTROLE AAN DE VOORKANT.
+  //
+  // Dezelfde regel als op de server (acht cijfers), maar dan meteen zichtbaar.
+  // De server blijft beslissen -- dit voorkomt alleen dat iemand het formulier
+  // verstuurt en pas daarna hoort dat er een cijfer mist.
+  const kvkCijfers = kvkNumber.replace(/\D/g, "");
+  const kvkFout =
+    kvkNumber.trim().length > 0 && kvkCijfers.length !== 8
+      ? "Een KVK-nummer bestaat uit acht cijfers."
+      : null;
+  // Doorgaan mag met een geldig KVK, of als je expliciet zegt er geen te hebben.
+  const kvkOk = (kvkCijfers.length === 8 && !kvkFout) || zonderKvk;
+
   const canNext =
     step === 0 ? name.trim().length > 1 && !!industry :
     step === 1 ? !!country && !!province && !!city :
-    step === 2 ? !!address && !!postcode && !!phone :
+    step === 2 ? !!address && !!postcode && !!phone && kvkOk :
     step === 3 ? Boolean(googleProfile) || (!!email && password.length >= 10) :
     step === 4 ? true :
     step === 5 ? goals.length > 0 :
@@ -548,8 +564,13 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
                   <input
                     value={kvkNumber}
                     onChange={(e) => setKvkNumber(e.target.value)}
-                    placeholder="KVK (optioneel)"
-                    className="rounded-2xl bg-surface px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-1 focus:ring-inset focus:ring-border-strong"
+                    inputMode="numeric"
+                    maxLength={16}
+                    placeholder="KVK-nummer"
+                    aria-invalid={kvkFout ? true : undefined}
+                    className={`rounded-2xl bg-surface px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-1 focus:ring-inset ${
+                      kvkFout ? "ring-1 ring-inset ring-red-500/60" : "focus:ring-border-strong"
+                    }`}
                   />
                   <input
                     value={vatNumber}
@@ -557,6 +578,44 @@ export function OnboardingClient({ networks, googleProfile }: { networks: Networ
                     placeholder="BTW (optioneel)"
                     className="rounded-2xl bg-surface px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-1 focus:ring-inset focus:ring-border-strong"
                   />
+                </div>
+
+                {/*
+                  DE KEUZE STAAT ER EXPLICIET, want "optioneel" is geen keuze.
+                  Met alleen een leeg veldje weet niemand dat doorgaan zonder KVK
+                  mag, en ook niet wat het betekent. Nu ziet de gebruiker vooraf
+                  dat zijn account onder review komt in plaats van dat hij daar
+                  achteraf achter komt.
+                */}
+                {kvkFout ? (
+                  <p className="mt-2 text-sm leading-6 text-red-500">{kvkFout}</p>
+                ) : null}
+
+                <div className="mt-3 rounded-2xl border border-border bg-surface/60 p-4">
+                  <p className="text-sm leading-6 text-muted">
+                    Eén account per KVK-nummer. Staat jouw bedrijf er nog niet bij of
+                    heb je geen KVK — bijvoorbeeld een BV in oprichting of een
+                    buitenlandse rechtsvorm — dan kun je gewoon verder.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setKvkNumber(""); setZonderKvk(true); }}
+                    className={`mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                      zonderKvk
+                        ? "bg-foreground text-background"
+                        : "border border-border text-foreground hover:bg-surface"
+                    }`}
+                  >
+                    {zonderKvk ? "Je gaat verder zonder KVK" : "Ik heb geen KVK-nummer"}
+                  </button>
+                  {zonderKvk ? (
+                    <p className="mt-3 text-sm leading-6 text-muted">
+                      Je account wordt gewoon aangemaakt en werkt meteen. Het komt wel
+                      onder review te staan tot wij je bedrijf hebben nagekeken. Klopt er
+                      iets niet, dan nemen we contact op via{" "}
+                      <a className="underline" href="mailto:info@vynta.nl">info@vynta.nl</a>.
+                    </p>
+                  ) : null}
                 </div>
               </div>
             )}

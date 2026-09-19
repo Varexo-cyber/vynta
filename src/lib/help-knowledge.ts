@@ -46,6 +46,76 @@ export const HELP_CATEGORIES: { id: HelpCategory; label: string; icon: string }[
 
 export const KNOWLEDGE_BASE: KnowledgeArticle[] = [
   {
+    id: "kvk-al-in-gebruik",
+    title: "Er bestaat al een account met mijn KVK-nummer",
+    category: "account",
+    keywords: [
+      "kvk", "kvk-nummer", "al in gebruik", "bezet", "dubbel account",
+      "bestaat al", "kamer van koophandel", "overnemen", "collega",
+    ],
+    answer:
+      "Op Vynta hoort bij elk KVK-nummer precies één account. Dat is met opzet: " +
+      "zo weet een bedrijf dat een aanvraag krijgt zeker dat hij op de juiste " +
+      "plek terechtkomt, en krijgt niemand dezelfde vraag twee keer. Krijg je de " +
+      "melding dat je KVK al in gebruik is, dan heeft iemand anders — vaak een " +
+      "collega — het account al aangemaakt.",
+    steps: [
+      "Vraag binnen je bedrijf na wie het Vynta-account heeft aangemaakt; die persoon kan je als gebruiker toevoegen.",
+      "Weet je zeker dat niemand van je bedrijf dit heeft gedaan, of heeft diegene het bedrijf verlaten? Mail dan naar info@vynta.nl.",
+      "Zet in die mail je KVK-nummer, je bedrijfsnaam en je zakelijke e-mailadres.",
+      "Wij controleren of je bevoegd bent en zetten het account over. Je hoort binnen twee werkdagen van ons.",
+    ],
+    lastUpdated: "2026-09-19",
+    contextRoutes: ["/onboarding", "/auth", "/settings"],
+  },
+  {
+    id: "geen-kvk-nummer",
+    title: "Mijn bedrijf staat er niet tussen of heeft geen KVK",
+    category: "account",
+    keywords: [
+      "geen kvk", "kvk onbekend", "bv in oprichting", "buitenlands bedrijf",
+      "handmatig", "niet gevonden", "staat er niet tussen", "review",
+      "onder review", "beoordeling",
+    ],
+    answer:
+      "Je kunt gewoon verder zonder KVK-nummer. Kies bij het aanmelden voor " +
+      "'Ik heb geen KVK-nummer' en vul je bedrijfsgegevens met de hand in — " +
+      "bijvoorbeeld bij een BV in oprichting of een buitenlandse rechtsvorm. " +
+      "Je account wordt meteen aangemaakt en werkt direct; je hoeft nergens op " +
+      "te wachten. Het staat alleen als 'onder review' gemarkeerd tot wij je " +
+      "bedrijf hebben nagekeken.",
+    steps: [
+      "Laat het KVK-veld leeg en klik op 'Ik heb geen KVK-nummer'.",
+      "Vul je bedrijfsnaam, adres en sector zo volledig mogelijk in — daar beoordelen wij op.",
+      "Maak je account af en ga gewoon aan de slag.",
+      "Krijg je later een KVK-nummer? Vul het dan aan bij Instellingen; de review vervalt zodra het nummer klopt.",
+    ],
+    lastUpdated: "2026-09-19",
+    contextRoutes: ["/onboarding", "/settings"],
+  },
+  {
+    id: "wat-betekent-onder-review",
+    title: "Wat betekent 'onder review'?",
+    category: "account",
+    keywords: [
+      "onder review", "in behandeling", "beoordeling", "gemarkeerd",
+      "geblokkeerd", "wachten", "goedgekeurd",
+    ],
+    answer:
+      "Onder review betekent dat wij je bedrijfsgegevens nog nakijken omdat er " +
+      "geen KVK-nummer bij zit. Het is geen blokkade: je kunt aanvragen plaatsen, " +
+      "reageren en berichten sturen alsof er niets aan de hand is. Wij nemen " +
+      "alleen contact op als er iets niet klopt.",
+    steps: [
+      "Er is niets wat je hoeft te doen; je account werkt gewoon.",
+      "Wil je het sneller afronden? Vul je KVK-nummer aan bij Instellingen.",
+      "Vragen? Mail info@vynta.nl met je bedrijfsnaam erbij.",
+    ],
+    lastUpdated: "2026-09-19",
+    contextRoutes: ["/settings", "/feed"],
+  },
+
+  {
     id: "edit-company-logo",
     title: "Bedrijfslogo wijzigen",
     category: "profile",
